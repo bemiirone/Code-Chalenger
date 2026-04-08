@@ -1,0 +1,15 @@
+
+.nx/installation
+.nx/cache
+.nx/workspace-data
+.nx/polygraph
+.claude/worktrees
+.claude/settings.local.json
+.angular
+
+__screenshots__/
+.env
+CLAUDE.md
+node_modules
+dist/apps/client/browser
+.vscode

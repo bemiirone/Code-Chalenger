@@ -1,0 +1,6 @@
+@import "tailwindcss";
+
+*, *::before, *::after { box-sizing: border-box; }
+html { color-scheme: dark; }
+body { background: #1e1e1e; color: #d4d4d4; font-family: 'Segoe UI', system-ui, sans-serif; margin: 0; }
+

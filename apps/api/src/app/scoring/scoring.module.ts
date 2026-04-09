@@ -9,8 +9,7 @@ import { OpenAiProvider } from './providers/openai.provider';
 import { AnthropicProvider } from './providers/anthropic.provider';
 import { SubmissionEntity, SubmissionSchema } from '../database/schemas/submission.schema';
 import { SessionEntity, SessionSchema } from '../database/schemas/session.schema';
-
-export const SCORING_QUEUE = 'scoring';
+import { SCORING_QUEUE } from './scoring.constants';
 
 @Module({
   imports: [

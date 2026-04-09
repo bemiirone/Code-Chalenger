@@ -33,7 +33,7 @@ export class ChallengeEntity {
   @Prop({ required: true })
   ai_scoring_prompt!: string;
 
-  @Prop({ required: true, enum: ['Easy', 'Medium', 'Hard'], index: true })
+  @Prop({ type: String, required: true, enum: ['Easy', 'Medium', 'Hard'], index: true })
   difficulty!: Difficulty;
 
   @Prop({ type: [String], default: [], index: true })

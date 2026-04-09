@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { ScoringResult } from '@code-challenger/shared';
-import { SCORING_QUEUE } from './scoring.module';
+import { SCORING_QUEUE } from './scoring.constants';
 
 export interface ScoringJobData {
   submissionId: string;

@@ -17,13 +17,13 @@ export class SubmissionEntity {
   @Prop({ required: true })
   userCode!: string;
 
-  @Prop({ default: null })
+  @Prop({ type: Number, default: null })
   score!: number | null;
 
-  @Prop({ default: null })
+  @Prop({ type: String, default: null })
   feedback!: string | null;
 
-  @Prop({ default: 'pending', enum: ['pending', 'scored', 'failed'] })
+  @Prop({ type: String, default: 'pending', enum: ['pending', 'scored', 'failed'] })
   status!: string;
 
   @Prop({ default: null })

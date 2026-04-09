@@ -7,7 +7,7 @@ import { SubmissionEntity, SubmissionDocument } from '../database/schemas/submis
 import { SessionEntity, SessionDocument } from '../database/schemas/session.schema';
 import { AiProviderFactory } from './providers/ai-provider.factory';
 import { ScoringJobData } from './scoring.service';
-import { SCORING_QUEUE } from './scoring.module';
+import { SCORING_QUEUE } from './scoring.constants';
 
 @Processor(SCORING_QUEUE)
 export class ScoringProcessor extends WorkerHost {

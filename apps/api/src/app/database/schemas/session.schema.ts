@@ -12,7 +12,7 @@ export class SessionEntity {
   @Prop({ type: [{ type: Types.ObjectId, ref: 'ChallengeEntity' }] })
   challenges!: Types.ObjectId[];
 
-  @Prop({ required: true, enum: ['Active', 'Completed'], default: 'Active' })
+  @Prop({ type: String, required: true, enum: ['Active', 'Completed'], default: 'Active' })
   status!: SessionStatus;
 
   @Prop({ default: 0 })

@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @source "../**/*.{ts,html}";
+@import "highlight.js/styles/vs2015.css";
 
 *, *::before, *::after { box-sizing: border-box; }
 html { color-scheme: dark; }
@@ -29,8 +30,13 @@ body { background: #1e1e1e; color: #d4d4d4; font-family: 'Segoe UI', system-ui, 
 }
 .markdown-body pre code {
   background: none;
-  color: #d4d4d4;
   padding: 0;
   font-size: 0.8rem;
+}
+
+/* Blend hljs theme into existing pre block */
+.markdown-body pre code.hljs {
+  background: transparent;
+  padding: 0;
 }
 

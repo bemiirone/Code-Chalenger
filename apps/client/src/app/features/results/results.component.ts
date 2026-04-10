@@ -59,7 +59,8 @@ import { Session } from '@code-challenger/shared';
                       {{ showSolution().has(i) ? 'Hide Solution' : 'Show Suggested Solution' }}
                     </button>
                     @if (showSolution().has(i)) {
-                      <pre class="mt-2 p-3 bg-[#1e1e1e] rounded text-xs text-[#d4d4d4] overflow-x-auto">{{ result.userCode }}</pre>
+                      <div class="markdown-body mt-2"
+                        [innerHTML]="codeBlock(result.userCode) | markdown"></div>
                     }
                   </div>
                 </div>
@@ -109,5 +110,9 @@ export class ResultsComponent implements OnInit {
       next.has(i) ? next.delete(i) : next.add(i);
       return next;
     });
+  }
+
+  codeBlock(code: string): string {
+    return '```typescript\n' + code + '\n```';
   }
 }

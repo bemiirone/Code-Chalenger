@@ -754,19 +754,25 @@ let SessionsService = class SessionsService {
     }
     async getSession(sessionId, userId) {
         const session = await this.sessionModel
-            .findOne({ _id: sessionId, user_id: userId })
+            .findById(sessionId)
             .populate('challenges')
             .exec();
         if (!session)
             throw new common_1.NotFoundException('Session not found');
+        if (session.user_id.toString() !== userId)
+            throw new common_1.ForbiddenException();
         return session;
     }
     async submitAnswer(userId, dto) {
         const session = await this.sessionModel
-            .findOne({ _id: dto.sessionId, user_id: userId, status: 'Active' })
+            .findById(dto.sessionId)
             .exec();
         if (!session)
-            throw new common_1.NotFoundException('Active session not found');
+            throw new common_1.NotFoundException('Session not found');
+        if (session.user_id.toString() !== userId)
+            throw new common_1.ForbiddenException();
+        if (session.status !== 'Active')
+            throw new common_1.BadRequestException('Session is already completed');
         const challenge = await this.challengesService.findById(dto.challengeId);
         const submission = await this.submissionModel.create({
             user_id: new mongoose_2.Types.ObjectId(userId),

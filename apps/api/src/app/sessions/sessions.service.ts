@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { SessionEntity, SessionDocument } from '../database/schemas/session.schema';
@@ -32,18 +32,21 @@ export class SessionsService {
 
   async getSession(sessionId: string, userId: string): Promise<SessionDocument> {
     const session = await this.sessionModel
-      .findOne({ _id: sessionId, user_id: userId })
+      .findById(sessionId)
       .populate('challenges')
       .exec();
     if (!session) throw new NotFoundException('Session not found');
+    if (session.user_id.toString() !== userId) throw new ForbiddenException();
     return session;
   }
 
   async submitAnswer(userId: string, dto: SubmitAnswerDto): Promise<ScoringResult> {
     const session = await this.sessionModel
-      .findOne({ _id: dto.sessionId, user_id: userId, status: 'Active' })
+      .findById(dto.sessionId)
       .exec();
-    if (!session) throw new NotFoundException('Active session not found');
+    if (!session) throw new NotFoundException('Session not found');
+    if (session.user_id.toString() !== userId) throw new ForbiddenException();
+    if (session.status !== 'Active') throw new BadRequestException('Session is already completed');
 
     const challenge = await this.challengesService.findById(dto.challengeId);
 

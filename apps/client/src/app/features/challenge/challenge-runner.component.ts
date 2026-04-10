@@ -3,11 +3,12 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { SessionService } from '../../core/services/session.service';
 import { MonacoEditorComponent } from './monaco-editor.component';
+import { MarkdownPipe } from '../../core/pipes/markdown.pipe';
 import { Challenge, Session, ScoringResult } from '@code-challenger/shared';
 
 @Component({
   standalone: true,
-  imports: [CommonModule, MonacoEditorComponent],
+  imports: [CommonModule, MonacoEditorComponent, MarkdownPipe],
   template: `
     <div class="min-h-screen bg-[#1e1e1e] flex flex-col">
       <!-- Header -->
@@ -58,7 +59,7 @@ import { Challenge, Session, ScoringResult } from '@code-challenger/shared';
                     @else if (result()!.score >= 50) { <span class="text-yellow-400 text-sm">Good effort</span> }
                     @else { <span class="text-red-400 text-sm">Needs improvement</span> }
                   </div>
-                  <p class="text-[#9d9d9d] text-sm">{{ result()!.feedback }}</p>
+                  <div class="markdown-body mt-1" [innerHTML]="result()!.feedback | markdown"></div>
                   <button (click)="next()" class="mt-2 text-[#007acc] text-sm hover:underline">
                     {{ isLast() ? 'View Results →' : 'Next Challenge →' }}
                   </button>

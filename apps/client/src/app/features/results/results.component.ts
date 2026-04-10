@@ -2,11 +2,12 @@ import { Component, OnInit, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { SessionService } from '../../core/services/session.service';
+import { MarkdownPipe } from '../../core/pipes/markdown.pipe';
 import { Session } from '@code-challenger/shared';
 
 @Component({
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, MarkdownPipe],
   template: `
     <div class="min-h-screen bg-[#1e1e1e] p-6">
       <header class="flex items-center justify-between mb-8">
@@ -50,7 +51,7 @@ import { Session } from '@code-challenger/shared';
                 <div class="px-5 pb-4 border-t border-[#3c3c3c] pt-4 space-y-3">
                   <div>
                     <p class="text-[#9d9d9d] text-xs uppercase tracking-wide mb-1">AI Feedback</p>
-                    <p class="text-[#d4d4d4] text-sm">{{ result.feedback }}</p>
+                    <div class="markdown-body" [innerHTML]="result.feedback | markdown"></div>
                   </div>
                   <div>
                     <button (click)="toggleSolution(i)"

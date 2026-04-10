@@ -58,7 +58,7 @@ export class SessionsService {
       status: 'pending',
     });
 
-    const result = await this.scoringService.enqueueScoring({
+    const result = await this.scoringService.scoreNow({
       submissionId: submission._id.toString(),
       challengePrompt: challenge.description,
       starterCode: challenge.starter_code,
@@ -68,11 +68,18 @@ export class SessionsService {
       targetVersion: challenge.version_constraints[0] ?? 'latest',
     });
 
-    // Update session results
+    // Persist real score on submission
+    await this.submissionModel.findByIdAndUpdate(submission._id, {
+      score: result.score,
+      feedback: result.feedback,
+      status: 'scored',
+    });
+
+    // Update session results with real score
     session.results.push({
       challengeId: new Types.ObjectId(dto.challengeId),
-      score: 0, // will be updated by scoring worker
-      feedback: 'Scoring in progress...',
+      score: result.score,
+      feedback: result.feedback,
       userCode: dto.userCode,
     });
 
@@ -80,6 +87,9 @@ export class SessionsService {
     if (answered >= 5) {
       session.status = 'Completed';
     }
+
+    // Recalculate total session score
+    session.score = session.results.reduce((sum, r) => sum + r.score, 0);
     await session.save();
 
     return result;

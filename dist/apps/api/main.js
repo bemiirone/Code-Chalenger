@@ -33,7 +33,7 @@ const database_module_1 = __webpack_require__(7);
 const auth_module_1 = __webpack_require__(9);
 const challenges_module_1 = __webpack_require__(25);
 const sessions_module_1 = __webpack_require__(30);
-const scoring_module_1 = __webpack_require__(40);
+const scoring_module_1 = __webpack_require__(44);
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -621,7 +621,7 @@ const sessions_service_1 = __webpack_require__(32);
 const session_schema_1 = __webpack_require__(33);
 const submission_schema_1 = __webpack_require__(34);
 const challenges_module_1 = __webpack_require__(25);
-const scoring_module_1 = __webpack_require__(40);
+const scoring_module_1 = __webpack_require__(44);
 let SessionsModule = class SessionsModule {
 };
 exports.SessionsModule = SessionsModule;
@@ -654,7 +654,7 @@ const common_1 = __webpack_require__(1);
 const swagger_1 = __webpack_require__(3);
 const sessions_service_1 = __webpack_require__(32);
 const jwt_auth_guard_1 = __webpack_require__(29);
-const current_user_decorator_1 = __webpack_require__(39);
+const current_user_decorator_1 = __webpack_require__(43);
 const shared_1 = __webpack_require__(17);
 let SessionsController = class SessionsController {
     constructor(sessionsService) {
@@ -781,7 +781,7 @@ let SessionsService = class SessionsService {
             userCode: dto.userCode,
             status: 'pending',
         });
-        const result = await this.scoringService.enqueueScoring({
+        const result = await this.scoringService.scoreNow({
             submissionId: submission._id.toString(),
             challengePrompt: challenge.description,
             starterCode: challenge.starter_code,
@@ -790,17 +790,25 @@ let SessionsService = class SessionsService {
             language: challenge.language,
             targetVersion: challenge.version_constraints[0] ?? 'latest',
         });
-        // Update session results
+        // Persist real score on submission
+        await this.submissionModel.findByIdAndUpdate(submission._id, {
+            score: result.score,
+            feedback: result.feedback,
+            status: 'scored',
+        });
+        // Update session results with real score
         session.results.push({
             challengeId: new mongoose_2.Types.ObjectId(dto.challengeId),
-            score: 0, // will be updated by scoring worker
-            feedback: 'Scoring in progress...',
+            score: result.score,
+            feedback: result.feedback,
             userCode: dto.userCode,
         });
         const answered = session.results.length;
         if (answered >= 5) {
             session.status = 'Completed';
         }
+        // Recalculate total session score
+        session.score = session.results.reduce((sum, r) => sum + r.score, 0);
         await session.save();
         return result;
     }
@@ -929,7 +937,8 @@ exports.SubmissionSchema = mongoose_1.SchemaFactory.createForClass(SubmissionEnt
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
-var _a;
+var ScoringService_1;
+var _a, _b;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.ScoringService = void 0;
 const tslib_1 = __webpack_require__(5);
@@ -937,10 +946,33 @@ const common_1 = __webpack_require__(1);
 const bullmq_1 = __webpack_require__(36);
 const bullmq_2 = __webpack_require__(37);
 const scoring_constants_1 = __webpack_require__(38);
-let ScoringService = class ScoringService {
-    constructor(scoringQueue) {
+const ai_provider_factory_1 = __webpack_require__(39);
+let ScoringService = ScoringService_1 = class ScoringService {
+    constructor(scoringQueue, aiFactory) {
         this.scoringQueue = scoringQueue;
+        this.aiFactory = aiFactory;
+        this.logger = new common_1.Logger(ScoringService_1.name);
     }
+    /** Score synchronously — awaits the AI response before returning. */
+    async scoreNow(data) {
+        try {
+            const provider = this.aiFactory.getProvider();
+            const result = await provider.score({
+                challengePrompt: data.challengePrompt,
+                starterCode: data.starterCode,
+                userCode: data.userCode,
+                aiScoringPrompt: data.aiScoringPrompt,
+                language: data.language,
+                targetVersion: data.targetVersion,
+            });
+            return { score: result.score, feedback: result.feedback, jobId: '' };
+        }
+        catch (err) {
+            this.logger.error('Synchronous scoring failed', err);
+            return { score: 0, feedback: 'Scoring failed. Please try again.', jobId: '' };
+        }
+    }
+    /** Enqueue for async processing (kept for future background use). */
     async enqueueScoring(data) {
         const job = await this.scoringQueue.add('score', data, {
             attempts: 3,
@@ -954,10 +986,10 @@ let ScoringService = class ScoringService {
     }
 };
 exports.ScoringService = ScoringService;
-exports.ScoringService = ScoringService = tslib_1.__decorate([
+exports.ScoringService = ScoringService = ScoringService_1 = tslib_1.__decorate([
     (0, common_1.Injectable)(),
     tslib_1.__param(0, (0, bullmq_1.InjectQueue)(scoring_constants_1.SCORING_QUEUE)),
-    tslib_1.__metadata("design:paramtypes", [typeof (_a = typeof bullmq_2.Queue !== "undefined" && bullmq_2.Queue) === "function" ? _a : Object])
+    tslib_1.__metadata("design:paramtypes", [typeof (_a = typeof bullmq_2.Queue !== "undefined" && bullmq_2.Queue) === "function" ? _a : Object, typeof (_b = typeof ai_provider_factory_1.AiProviderFactory !== "undefined" && ai_provider_factory_1.AiProviderFactory) === "function" ? _b : Object])
 ], ScoringService);
 
 
@@ -988,145 +1020,14 @@ exports.SCORING_QUEUE = 'scoring';
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.CurrentUser = void 0;
-const common_1 = __webpack_require__(1);
-exports.CurrentUser = (0, common_1.createParamDecorator)((_data, ctx) => {
-    const request = ctx.switchToHttp().getRequest();
-    return request.user;
-});
-
-
-/***/ }),
-/* 40 */
-/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
-
-
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.ScoringModule = void 0;
-const tslib_1 = __webpack_require__(5);
-const common_1 = __webpack_require__(1);
-const bullmq_1 = __webpack_require__(36);
-const mongoose_1 = __webpack_require__(8);
-const config_1 = __webpack_require__(6);
-const scoring_service_1 = __webpack_require__(35);
-const scoring_processor_1 = __webpack_require__(41);
-const ai_provider_factory_1 = __webpack_require__(42);
-const openai_provider_1 = __webpack_require__(43);
-const anthropic_provider_1 = __webpack_require__(45);
-const submission_schema_1 = __webpack_require__(34);
-const session_schema_1 = __webpack_require__(33);
-const scoring_constants_1 = __webpack_require__(38);
-let ScoringModule = class ScoringModule {
-};
-exports.ScoringModule = ScoringModule;
-exports.ScoringModule = ScoringModule = tslib_1.__decorate([
-    (0, common_1.Module)({
-        imports: [
-            bullmq_1.BullModule.forRootAsync({
-                useFactory: (config) => ({
-                    connection: {
-                        host: config.get('REDIS_HOST', 'localhost'),
-                        port: config.get('REDIS_PORT', 6379),
-                    },
-                }),
-                inject: [config_1.ConfigService],
-            }),
-            bullmq_1.BullModule.registerQueue({ name: scoring_constants_1.SCORING_QUEUE }),
-            mongoose_1.MongooseModule.forFeature([
-                { name: submission_schema_1.SubmissionEntity.name, schema: submission_schema_1.SubmissionSchema },
-                { name: session_schema_1.SessionEntity.name, schema: session_schema_1.SessionSchema },
-            ]),
-        ],
-        providers: [scoring_service_1.ScoringService, scoring_processor_1.ScoringProcessor, ai_provider_factory_1.AiProviderFactory, openai_provider_1.OpenAiProvider, anthropic_provider_1.AnthropicProvider],
-        exports: [scoring_service_1.ScoringService],
-    })
-], ScoringModule);
-
-
-/***/ }),
-/* 41 */
-/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
-
-
-var ScoringProcessor_1;
-var _a, _b, _c;
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.ScoringProcessor = void 0;
-const tslib_1 = __webpack_require__(5);
-const bullmq_1 = __webpack_require__(36);
-const common_1 = __webpack_require__(1);
-const mongoose_1 = __webpack_require__(8);
-const mongoose_2 = __webpack_require__(14);
-const submission_schema_1 = __webpack_require__(34);
-const session_schema_1 = __webpack_require__(33);
-const ai_provider_factory_1 = __webpack_require__(42);
-const scoring_constants_1 = __webpack_require__(38);
-let ScoringProcessor = ScoringProcessor_1 = class ScoringProcessor extends bullmq_1.WorkerHost {
-    constructor(submissionModel, sessionModel, aiFactory) {
-        super();
-        this.submissionModel = submissionModel;
-        this.sessionModel = sessionModel;
-        this.aiFactory = aiFactory;
-        this.logger = new common_1.Logger(ScoringProcessor_1.name);
-    }
-    async process(job) {
-        const { submissionId, ...scoreRequest } = job.data;
-        this.logger.log(`Scoring submission ${submissionId}`);
-        try {
-            const provider = this.aiFactory.getProvider();
-            const result = await provider.score(scoreRequest);
-            await this.submissionModel.findByIdAndUpdate(submissionId, {
-                score: result.score,
-                feedback: result.feedback,
-                status: 'scored',
-            });
-            // Update the matching result in the parent session
-            await this.sessionModel.updateOne({ 'results.challengeId': new mongoose_2.Types.ObjectId(job.data.submissionId) }, {
-                $set: {
-                    'results.$.score': result.score,
-                    'results.$.feedback': result.feedback,
-                },
-            });
-            // Recalculate session total score
-            const submission = await this.submissionModel.findById(submissionId);
-            if (submission) {
-                const sessionResults = await this.submissionModel
-                    .find({ session_id: submission.session_id, status: 'scored' })
-                    .exec();
-                const total = sessionResults.reduce((acc, s) => acc + (s.score ?? 0), 0);
-                await this.sessionModel.findByIdAndUpdate(submission.session_id, { score: total });
-            }
-        }
-        catch (err) {
-            this.logger.error(`Failed to score submission ${submissionId}`, err);
-            await this.submissionModel.findByIdAndUpdate(submissionId, { status: 'failed' });
-            throw err; // let BullMQ retry
-        }
-    }
-};
-exports.ScoringProcessor = ScoringProcessor;
-exports.ScoringProcessor = ScoringProcessor = ScoringProcessor_1 = tslib_1.__decorate([
-    (0, bullmq_1.Processor)(scoring_constants_1.SCORING_QUEUE),
-    tslib_1.__param(0, (0, mongoose_1.InjectModel)(submission_schema_1.SubmissionEntity.name)),
-    tslib_1.__param(1, (0, mongoose_1.InjectModel)(session_schema_1.SessionEntity.name)),
-    tslib_1.__metadata("design:paramtypes", [typeof (_a = typeof mongoose_2.Model !== "undefined" && mongoose_2.Model) === "function" ? _a : Object, typeof (_b = typeof mongoose_2.Model !== "undefined" && mongoose_2.Model) === "function" ? _b : Object, typeof (_c = typeof ai_provider_factory_1.AiProviderFactory !== "undefined" && ai_provider_factory_1.AiProviderFactory) === "function" ? _c : Object])
-], ScoringProcessor);
-
-
-/***/ }),
-/* 42 */
-/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
-
-
 var _a, _b, _c;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.AiProviderFactory = void 0;
 const tslib_1 = __webpack_require__(5);
 const common_1 = __webpack_require__(1);
 const config_1 = __webpack_require__(6);
-const openai_provider_1 = __webpack_require__(43);
-const anthropic_provider_1 = __webpack_require__(45);
+const openai_provider_1 = __webpack_require__(40);
+const anthropic_provider_1 = __webpack_require__(42);
 let AiProviderFactory = class AiProviderFactory {
     constructor(config, openAi, anthropic) {
         this.config = config;
@@ -1148,7 +1049,7 @@ exports.AiProviderFactory = AiProviderFactory = tslib_1.__decorate([
 
 
 /***/ }),
-/* 43 */
+/* 40 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -1159,7 +1060,7 @@ exports.OpenAiProvider = void 0;
 const tslib_1 = __webpack_require__(5);
 const common_1 = __webpack_require__(1);
 const config_1 = __webpack_require__(6);
-const scoring_prompts_1 = __webpack_require__(44);
+const scoring_prompts_1 = __webpack_require__(41);
 let OpenAiProvider = OpenAiProvider_1 = class OpenAiProvider {
     constructor(config) {
         this.config = config;
@@ -1205,7 +1106,7 @@ exports.OpenAiProvider = OpenAiProvider = OpenAiProvider_1 = tslib_1.__decorate(
 
 
 /***/ }),
-/* 44 */
+/* 41 */
 /***/ ((__unused_webpack_module, exports) => {
 
 
@@ -1260,7 +1161,7 @@ Grade the User Code according to the criteria above and respond with JSON.`;
 
 
 /***/ }),
-/* 45 */
+/* 42 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -1271,7 +1172,7 @@ exports.AnthropicProvider = void 0;
 const tslib_1 = __webpack_require__(5);
 const common_1 = __webpack_require__(1);
 const config_1 = __webpack_require__(6);
-const scoring_prompts_1 = __webpack_require__(44);
+const scoring_prompts_1 = __webpack_require__(41);
 let AnthropicProvider = AnthropicProvider_1 = class AnthropicProvider {
     constructor(config) {
         this.config = config;
@@ -1315,6 +1216,137 @@ exports.AnthropicProvider = AnthropicProvider = AnthropicProvider_1 = tslib_1.__
     (0, common_1.Injectable)(),
     tslib_1.__metadata("design:paramtypes", [typeof (_a = typeof config_1.ConfigService !== "undefined" && config_1.ConfigService) === "function" ? _a : Object])
 ], AnthropicProvider);
+
+
+/***/ }),
+/* 43 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.CurrentUser = void 0;
+const common_1 = __webpack_require__(1);
+exports.CurrentUser = (0, common_1.createParamDecorator)((_data, ctx) => {
+    const request = ctx.switchToHttp().getRequest();
+    return request.user;
+});
+
+
+/***/ }),
+/* 44 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.ScoringModule = void 0;
+const tslib_1 = __webpack_require__(5);
+const common_1 = __webpack_require__(1);
+const bullmq_1 = __webpack_require__(36);
+const mongoose_1 = __webpack_require__(8);
+const config_1 = __webpack_require__(6);
+const scoring_service_1 = __webpack_require__(35);
+const scoring_processor_1 = __webpack_require__(45);
+const ai_provider_factory_1 = __webpack_require__(39);
+const openai_provider_1 = __webpack_require__(40);
+const anthropic_provider_1 = __webpack_require__(42);
+const submission_schema_1 = __webpack_require__(34);
+const session_schema_1 = __webpack_require__(33);
+const scoring_constants_1 = __webpack_require__(38);
+let ScoringModule = class ScoringModule {
+};
+exports.ScoringModule = ScoringModule;
+exports.ScoringModule = ScoringModule = tslib_1.__decorate([
+    (0, common_1.Module)({
+        imports: [
+            bullmq_1.BullModule.forRootAsync({
+                useFactory: (config) => ({
+                    connection: {
+                        host: config.get('REDIS_HOST', 'localhost'),
+                        port: config.get('REDIS_PORT', 6379),
+                    },
+                }),
+                inject: [config_1.ConfigService],
+            }),
+            bullmq_1.BullModule.registerQueue({ name: scoring_constants_1.SCORING_QUEUE }),
+            mongoose_1.MongooseModule.forFeature([
+                { name: submission_schema_1.SubmissionEntity.name, schema: submission_schema_1.SubmissionSchema },
+                { name: session_schema_1.SessionEntity.name, schema: session_schema_1.SessionSchema },
+            ]),
+        ],
+        providers: [scoring_service_1.ScoringService, scoring_processor_1.ScoringProcessor, ai_provider_factory_1.AiProviderFactory, openai_provider_1.OpenAiProvider, anthropic_provider_1.AnthropicProvider],
+        exports: [scoring_service_1.ScoringService],
+    })
+], ScoringModule);
+
+
+/***/ }),
+/* 45 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+
+var ScoringProcessor_1;
+var _a, _b, _c;
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.ScoringProcessor = void 0;
+const tslib_1 = __webpack_require__(5);
+const bullmq_1 = __webpack_require__(36);
+const common_1 = __webpack_require__(1);
+const mongoose_1 = __webpack_require__(8);
+const mongoose_2 = __webpack_require__(14);
+const submission_schema_1 = __webpack_require__(34);
+const session_schema_1 = __webpack_require__(33);
+const ai_provider_factory_1 = __webpack_require__(39);
+const scoring_constants_1 = __webpack_require__(38);
+let ScoringProcessor = ScoringProcessor_1 = class ScoringProcessor extends bullmq_1.WorkerHost {
+    constructor(submissionModel, sessionModel, aiFactory) {
+        super();
+        this.submissionModel = submissionModel;
+        this.sessionModel = sessionModel;
+        this.aiFactory = aiFactory;
+        this.logger = new common_1.Logger(ScoringProcessor_1.name);
+    }
+    async process(job) {
+        const { submissionId, ...scoreRequest } = job.data;
+        this.logger.log(`Scoring submission ${submissionId}`);
+        try {
+            const provider = this.aiFactory.getProvider();
+            const result = await provider.score(scoreRequest);
+            await this.submissionModel.findByIdAndUpdate(submissionId, {
+                score: result.score,
+                feedback: result.feedback,
+                status: 'scored',
+            });
+            // Update the matching result in the parent session
+            await this.sessionModel.updateOne({ 'results.challengeId': new mongoose_2.Types.ObjectId(job.data.submissionId) }, {
+                $set: {
+                    'results.$.score': result.score,
+                    'results.$.feedback': result.feedback,
+                },
+            });
+            // Recalculate session total score
+            const submission = await this.submissionModel.findById(submissionId);
+            if (submission) {
+                const sessionResults = await this.submissionModel
+                    .find({ session_id: submission.session_id, status: 'scored' })
+                    .exec();
+                const total = sessionResults.reduce((acc, s) => acc + (s.score ?? 0), 0);
+                await this.sessionModel.findByIdAndUpdate(submission.session_id, { score: total });
+            }
+        }
+        catch (err) {
+            this.logger.error(`Failed to score submission ${submissionId}`, err);
+            await this.submissionModel.findByIdAndUpdate(submissionId, { status: 'failed' });
+            throw err; // let BullMQ retry
+        }
+    }
+};
+exports.ScoringProcessor = ScoringProcessor;
+exports.ScoringProcessor = ScoringProcessor = ScoringProcessor_1 = tslib_1.__decorate([
+    (0, bullmq_1.Processor)(scoring_constants_1.SCORING_QUEUE),
+    tslib_1.__param(0, (0, mongoose_1.InjectModel)(submission_schema_1.SubmissionEntity.name)),
+    tslib_1.__param(1, (0, mongoose_1.InjectModel)(session_schema_1.SessionEntity.name)),
+    tslib_1.__metadata("design:paramtypes", [typeof (_a = typeof mongoose_2.Model !== "undefined" && mongoose_2.Model) === "function" ? _a : Object, typeof (_b = typeof mongoose_2.Model !== "undefined" && mongoose_2.Model) === "function" ? _b : Object, typeof (_c = typeof ai_provider_factory_1.AiProviderFactory !== "undefined" && ai_provider_factory_1.AiProviderFactory) === "function" ? _c : Object])
+], ScoringProcessor);
 
 
 /***/ })

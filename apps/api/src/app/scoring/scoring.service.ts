@@ -1,8 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { ScoringResult } from '@code-challenger/shared';
 import { SCORING_QUEUE } from './scoring.constants';
+import { AiProviderFactory } from './providers/ai-provider.factory';
 
 export interface ScoringJobData {
   submissionId: string;
@@ -16,8 +17,33 @@ export interface ScoringJobData {
 
 @Injectable()
 export class ScoringService {
-  constructor(@InjectQueue(SCORING_QUEUE) private scoringQueue: Queue) {}
+  private readonly logger = new Logger(ScoringService.name);
 
+  constructor(
+    @InjectQueue(SCORING_QUEUE) private scoringQueue: Queue,
+    private aiFactory: AiProviderFactory,
+  ) {}
+
+  /** Score synchronously — awaits the AI response before returning. */
+  async scoreNow(data: ScoringJobData): Promise<ScoringResult> {
+    try {
+      const provider = this.aiFactory.getProvider();
+      const result = await provider.score({
+        challengePrompt: data.challengePrompt,
+        starterCode: data.starterCode,
+        userCode: data.userCode,
+        aiScoringPrompt: data.aiScoringPrompt,
+        language: data.language,
+        targetVersion: data.targetVersion,
+      });
+      return { score: result.score, feedback: result.feedback, jobId: '' };
+    } catch (err) {
+      this.logger.error('Synchronous scoring failed', err);
+      return { score: 0, feedback: 'Scoring failed. Please try again.', jobId: '' };
+    }
+  }
+
+  /** Enqueue for async processing (kept for future background use). */
   async enqueueScoring(data: ScoringJobData): Promise<ScoringResult> {
     const job = await this.scoringQueue.add('score', data, {
       attempts: 3,

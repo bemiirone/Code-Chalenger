@@ -48,6 +48,11 @@ export class SessionsService {
     if (session.user_id.toString() !== userId) throw new ForbiddenException();
     if (session.status !== 'Active') throw new BadRequestException('Session is already completed');
 
+    const alreadyAnswered = session.results.some(
+      (r) => r.challengeId.toString() === dto.challengeId,
+    );
+    if (alreadyAnswered) throw new BadRequestException('Challenge already submitted in this session');
+
     const challenge = await this.challengesService.findById(dto.challengeId);
 
     const submission = await this.submissionModel.create({

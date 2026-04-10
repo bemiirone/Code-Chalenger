@@ -45,22 +45,25 @@ import { Challenge, Session, ScoringResult } from '@code-challenger/shared';
               height="calc(100vh - 220px)"
             />
 
-            <div class="flex items-center gap-4">
-              <button (click)="submit()" [disabled]="submitting()"
-                class="px-6 py-2 bg-[#007acc] hover:bg-[#1a8ad4] text-white rounded font-medium disabled:opacity-50">
-                {{ submitting() ? 'Submitting…' : 'Submit Answer' }}
-              </button>
+            <div class="flex flex-col gap-4">
+              @if (!result()) {
+                <button (click)="submit()" [disabled]="submitting()"
+                  class="self-start px-6 py-2 bg-[#007acc] hover:bg-[#1a8ad4] text-white rounded font-medium disabled:opacity-50">
+                  {{ submitting() ? 'Submitting…' : 'Submit Answer' }}
+                </button>
+              }
 
               @if (result()) {
-                <div class="flex-1 p-3 rounded bg-[#252526] border border-[#3c3c3c]">
-                  <div class="flex items-center gap-3 mb-1">
-                    <span class="text-white font-medium">Score: {{ result()!.score }}/100</span>
-                    @if (result()!.score >= 80) { <span class="text-green-400 text-sm">Excellent!</span> }
-                    @else if (result()!.score >= 50) { <span class="text-yellow-400 text-sm">Good effort</span> }
-                    @else { <span class="text-red-400 text-sm">Needs improvement</span> }
+                <div class="p-4 rounded bg-[#252526] border border-[#3c3c3c]">
+                  <div class="flex items-center gap-3 mb-3">
+                    <span class="text-white font-semibold text-lg">{{ result()!.score }}/100</span>
+                    @if (result()!.score >= 80) { <span class="text-green-400 text-sm font-medium">Excellent!</span> }
+                    @else if (result()!.score >= 50) { <span class="text-yellow-400 text-sm font-medium">Good effort</span> }
+                    @else { <span class="text-red-400 text-sm font-medium">Needs improvement</span> }
                   </div>
-                  <div class="markdown-body mt-1" [innerHTML]="result()!.feedback | markdown"></div>
-                  <button (click)="next()" class="mt-2 text-[#007acc] text-sm hover:underline">
+                  <div class="markdown-body" [innerHTML]="result()!.feedback | markdown"></div>
+                  <button (click)="next()"
+                    class="mt-4 px-4 py-2 bg-[#007acc] hover:bg-[#1a8ad4] text-white text-sm rounded font-medium">
                     {{ isLast() ? 'View Results →' : 'Next Challenge →' }}
                   </button>
                 </div>

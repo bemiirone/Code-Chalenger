@@ -40,7 +40,22 @@ const DIFFICULTY_ORDER: Difficulty[] = ['Easy', 'Medium', 'Hard'];
 
       <section>
         <h2 class="text-lg font-semibold text-white mb-4">Start a Challenge Session</h2>
-        <p class="text-[#9d9d9d] text-sm mb-4">Each session contains 5 random challenges. Your code is scored by AI.</p>
+        <p class="text-[#9d9d9d] text-sm mb-4">Each session contains {{ challengeCount() }} random challenge{{ challengeCount() === 1 ? '' : 's' }}. Your code is scored by AI.</p>
+
+        <div class="mb-5">
+          <span class="text-white text-sm font-medium block mb-2">Challenges per session</span>
+          <div class="flex gap-2">
+            @for (n of [1, 3, 5]; track n) {
+              <button (click)="challengeCount.set($any(n))"
+                class="px-4 py-1.5 rounded text-sm font-medium border transition"
+                [class]="challengeCount() === n
+                  ? 'bg-[#007acc] border-[#007acc] text-white'
+                  : 'bg-transparent border-[#3c3c3c] text-[#9d9d9d] hover:border-[#007acc] hover:text-white'">
+                {{ n }}
+              </button>
+            }
+          </div>
+        </div>
 
         <label class="flex items-center gap-3 mb-6 cursor-pointer w-fit">
           <div class="relative">
@@ -53,7 +68,7 @@ const DIFFICULTY_ORDER: Difficulty[] = ['Easy', 'Medium', 'Hard'];
           </div>
           <div>
             <span class="text-white text-sm font-medium">Enable timer</span>
-            <span class="block text-[#9d9d9d] text-xs">Easy 5 min · Medium 8 min · Hard 12 min</span>
+            <span class="block text-[#9d9d9d] text-xs">Easy 15 min · Medium 20 min · Hard 30 min</span>
           </div>
         </label>
 
@@ -86,6 +101,7 @@ export class DashboardComponent implements OnInit {
   loading = signal(false);
   error = signal('');
   timerEnabled = signal(false);
+  challengeCount = signal<1 | 3 | 5>(3);
 
   constructor(
     readonly auth: AuthService,
@@ -126,7 +142,7 @@ export class DashboardComponent implements OnInit {
     this.loading.set(true);
     this.error.set('');
     try {
-      const session = await this.sessions.startSession({ language: cfg.language, difficulty: cfg.difficulty });
+      const session = await this.sessions.startSession({ language: cfg.language, difficulty: cfg.difficulty, count: this.challengeCount() });
       await this.router.navigate(['/challenge', session._id], {
         state: { timerEnabled: this.timerEnabled() }
       });

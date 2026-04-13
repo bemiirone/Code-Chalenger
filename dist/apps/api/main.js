@@ -761,9 +761,10 @@ let SessionsService = class SessionsService {
         this.scoringService = scoringService;
     }
     async startSession(userId, dto) {
-        const challenges = await this.challengesService.findRandom(dto.language, dto.difficulty, 5);
-        if (challenges.length < 5) {
-            throw new common_1.BadRequestException(`Not enough challenges for ${dto.language}/${dto.difficulty}. Found ${challenges.length}, need 5.`);
+        const count = dto.count ?? 5;
+        const challenges = await this.challengesService.findRandom(dto.language, dto.difficulty, count);
+        if (challenges.length < count) {
+            throw new common_1.BadRequestException(`Not enough challenges for ${dto.language}/${dto.difficulty}. Found ${challenges.length}, need ${count}.`);
         }
         return this.sessionModel.create({
             user_id: new mongoose_2.Types.ObjectId(userId),
@@ -827,7 +828,7 @@ let SessionsService = class SessionsService {
             elapsedSeconds: dto.elapsedSeconds ?? 0,
         });
         const answered = session.results.length;
-        if (answered >= 5) {
+        if (answered >= session.challenges.length) {
             session.status = 'Completed';
         }
         // Recalculate total session score

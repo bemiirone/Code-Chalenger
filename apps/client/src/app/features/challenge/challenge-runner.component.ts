@@ -15,7 +15,7 @@ import { Challenge, Session, ScoringResult } from '@code-challenger/shared';
       <header class="flex items-center justify-between px-6 py-3 bg-[#252526] border-b border-[#3c3c3c]">
         <span class="text-white font-semibold">Code Challenger</span>
         <span class="text-[#9d9d9d] text-sm">
-          Challenge {{ sessions.currentChallengeIndex() + 1 }} of 5
+          Challenge {{ sessions.currentChallengeIndex() + 1 }} of {{ session()?.challenges?.length ?? 5 }}
         </span>
         @if (timerEnabled) {
           <span class="font-mono text-sm px-3 py-1 rounded"
@@ -99,7 +99,7 @@ export class ChallengeRunnerComponent implements OnInit, OnDestroy {
   private challengeStartTime = 0;
 
   private readonly TIMER_DURATIONS: Record<string, number> = {
-    Easy: 300, Medium: 480, Hard: 720,
+    Easy: 900, Medium: 1200, Hard: 1800,
   };
 
   currentChallenge = computed<Challenge | null>(() => {
@@ -116,8 +116,8 @@ export class ChallengeRunnerComponent implements OnInit, OnDestroy {
     return lang;
   });
 
-  progress = computed(() => ((this.sessions.currentChallengeIndex()) / 5) * 100);
-  isLast = computed(() => this.sessions.currentChallengeIndex() >= 4);
+  progress = computed(() => (this.sessions.currentChallengeIndex() / (this.session()?.challenges?.length ?? 5)) * 100);
+  isLast = computed(() => this.sessions.currentChallengeIndex() >= (this.session()?.challenges?.length ?? 5) - 1);
 
   constructor(
     readonly sessions: SessionService,

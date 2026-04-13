@@ -17,10 +17,11 @@ export class SessionsService {
   ) {}
 
   async startSession(userId: string, dto: StartSessionDto): Promise<SessionDocument> {
-    const challenges = await this.challengesService.findRandom(dto.language, dto.difficulty, 5);
-    if (challenges.length < 5) {
+    const count = dto.count ?? 5;
+    const challenges = await this.challengesService.findRandom(dto.language, dto.difficulty, count);
+    if (challenges.length < count) {
       throw new BadRequestException(
-        `Not enough challenges for ${dto.language}/${dto.difficulty}. Found ${challenges.length}, need 5.`,
+        `Not enough challenges for ${dto.language}/${dto.difficulty}. Found ${challenges.length}, need ${count}.`,
       );
     }
     return this.sessionModel.create({
@@ -90,7 +91,7 @@ export class SessionsService {
     });
 
     const answered = session.results.length;
-    if (answered >= 5) {
+    if (answered >= session.challenges.length) {
       session.status = 'Completed';
     }
 

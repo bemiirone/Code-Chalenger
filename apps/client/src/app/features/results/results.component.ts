@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { SessionService } from '../../core/services/session.service';
 import { MarkdownPipe } from '../../core/pipes/markdown.pipe';
-import { Session } from '@code-challenger/shared';
+import { Session, Challenge } from '@code-challenger/shared';
 
 @Component({
   standalone: true,
@@ -26,8 +26,9 @@ import { Session } from '@code-challenger/shared';
             <div class="text-[#9d9d9d] text-sm mt-1">Total Score</div>
           </div>
           <div class="text-[#9d9d9d] text-sm">
-            <p>{{ passCount() }} / 5 challenges passed (score ≥ 70)</p>
+            <p>{{ passCount() }} / {{ session()!.challenges.length }} challenges passed (score ≥ 70)</p>
             <p class="mt-1">Status: <span class="text-white">{{ session()!.status }}</span></p>
+            <p class="mt-1">Total time: <span class="text-white">{{ formatTime(totalElapsed()) }}</span></p>
           </div>
         </div>
 
@@ -46,7 +47,7 @@ import { Session } from '@code-challenger/shared';
                 </div>
                 <div class="flex items-center gap-4">
                   @if (result.elapsedSeconds) {
-                    <span class="text-[#9d9d9d] text-xs">{{ formatTime(result.elapsedSeconds) }}</span>
+                    <span class="text-[#9d9d9d] text-xs">{{ formatTime(result.elapsedSeconds) }} / {{ allowedTime(result.challengeId) }}</span>
                   }
                   <span class="text-white font-semibold">{{ result.score }}/100</span>
                 </div>
@@ -86,10 +87,14 @@ export class ResultsComponent implements OnInit {
   passCount = computed(() =>
     (this.session()?.results ?? []).filter((r) => r.score >= 70).length,
   );
+  totalElapsed = computed(() =>
+    (this.session()?.results ?? []).reduce((sum, r) => sum + (r.elapsedSeconds ?? 0), 0),
+  );
   scoreColor = computed(() => {
     const s = this.session()?.score ?? 0;
-    if (s >= 350) return 'text-green-400';
-    if (s >= 200) return 'text-yellow-400';
+    const count = this.session()?.challenges?.length ?? 5;
+    if (s >= count * 70) return 'text-green-400';
+    if (s >= count * 40) return 'text-yellow-400';
     return 'text-red-400';
   });
 
@@ -119,6 +124,18 @@ export class ResultsComponent implements OnInit {
 
   codeBlock(code: string): string {
     return '```typescript\n' + code + '\n```';
+  }
+
+  private readonly TIMER_DURATIONS: Record<string, number> = {
+    Easy: 900, Medium: 1200, Hard: 1800,
+  };
+
+  allowedTime(challengeId: string): string {
+    const challenges = this.session()?.challenges as unknown as Challenge[];
+    const challenge = challenges?.find((c) => c._id === challengeId);
+    const seconds = this.TIMER_DURATIONS[challenge?.difficulty ?? ''] ?? null;
+    if (!seconds) return '—';
+    return `${seconds / 60}m`;
   }
 
   formatTime(seconds?: number): string {

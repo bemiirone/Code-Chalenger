@@ -31,9 +31,9 @@ const common_1 = __webpack_require__(1);
 const config_1 = __webpack_require__(6);
 const database_module_1 = __webpack_require__(7);
 const auth_module_1 = __webpack_require__(9);
-const challenges_module_1 = __webpack_require__(25);
-const sessions_module_1 = __webpack_require__(30);
-const scoring_module_1 = __webpack_require__(44);
+const challenges_module_1 = __webpack_require__(26);
+const sessions_module_1 = __webpack_require__(31);
+const scoring_module_1 = __webpack_require__(45);
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -112,7 +112,7 @@ const mongoose_1 = __webpack_require__(8);
 const config_1 = __webpack_require__(6);
 const auth_controller_1 = __webpack_require__(12);
 const auth_service_1 = __webpack_require__(13);
-const jwt_strategy_1 = __webpack_require__(23);
+const jwt_strategy_1 = __webpack_require__(24);
 const user_schema_1 = __webpack_require__(16);
 let AuthModule = class AuthModule {
 };
@@ -313,6 +313,7 @@ tslib_1.__exportStar(__webpack_require__(19), exports);
 tslib_1.__exportStar(__webpack_require__(20), exports);
 tslib_1.__exportStar(__webpack_require__(21), exports);
 tslib_1.__exportStar(__webpack_require__(22), exports);
+tslib_1.__exportStar(__webpack_require__(23), exports);
 
 
 /***/ }),
@@ -357,6 +358,20 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 
 /***/ }),
 /* 23 */
+/***/ ((__unused_webpack_module, exports) => {
+
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.TIMER_DURATIONS = void 0;
+exports.TIMER_DURATIONS = {
+    Easy: 900,
+    Medium: 1200,
+    Hard: 1800,
+};
+
+
+/***/ }),
+/* 24 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -366,7 +381,7 @@ exports.JwtStrategy = void 0;
 const tslib_1 = __webpack_require__(5);
 const common_1 = __webpack_require__(1);
 const passport_1 = __webpack_require__(11);
-const passport_jwt_1 = __webpack_require__(24);
+const passport_jwt_1 = __webpack_require__(25);
 const config_1 = __webpack_require__(6);
 let JwtStrategy = class JwtStrategy extends (0, passport_1.PassportStrategy)(passport_jwt_1.Strategy) {
     constructor(config) {
@@ -388,13 +403,13 @@ exports.JwtStrategy = JwtStrategy = tslib_1.__decorate([
 
 
 /***/ }),
-/* 24 */
+/* 25 */
 /***/ ((module) => {
 
 module.exports = require("passport-jwt");
 
 /***/ }),
-/* 25 */
+/* 26 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -403,9 +418,9 @@ exports.ChallengesModule = void 0;
 const tslib_1 = __webpack_require__(5);
 const common_1 = __webpack_require__(1);
 const mongoose_1 = __webpack_require__(8);
-const challenges_controller_1 = __webpack_require__(26);
-const challenges_service_1 = __webpack_require__(27);
-const challenge_schema_1 = __webpack_require__(28);
+const challenges_controller_1 = __webpack_require__(27);
+const challenges_service_1 = __webpack_require__(28);
+const challenge_schema_1 = __webpack_require__(29);
 let ChallengesModule = class ChallengesModule {
 };
 exports.ChallengesModule = ChallengesModule;
@@ -424,7 +439,7 @@ exports.ChallengesModule = ChallengesModule = tslib_1.__decorate([
 
 
 /***/ }),
-/* 26 */
+/* 27 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -434,8 +449,8 @@ exports.ChallengesController = void 0;
 const tslib_1 = __webpack_require__(5);
 const common_1 = __webpack_require__(1);
 const swagger_1 = __webpack_require__(3);
-const challenges_service_1 = __webpack_require__(27);
-const jwt_auth_guard_1 = __webpack_require__(29);
+const challenges_service_1 = __webpack_require__(28);
+const jwt_auth_guard_1 = __webpack_require__(30);
 const shared_1 = __webpack_require__(17);
 let ChallengesController = class ChallengesController {
     constructor(challengesService) {
@@ -488,7 +503,7 @@ exports.ChallengesController = ChallengesController = tslib_1.__decorate([
 
 
 /***/ }),
-/* 27 */
+/* 28 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -499,7 +514,7 @@ const tslib_1 = __webpack_require__(5);
 const common_1 = __webpack_require__(1);
 const mongoose_1 = __webpack_require__(8);
 const mongoose_2 = __webpack_require__(14);
-const challenge_schema_1 = __webpack_require__(28);
+const challenge_schema_1 = __webpack_require__(29);
 let ChallengesService = class ChallengesService {
     constructor(challengeModel) {
         this.challengeModel = challengeModel;
@@ -545,7 +560,7 @@ exports.ChallengesService = ChallengesService = tslib_1.__decorate([
 
 
 /***/ }),
-/* 28 */
+/* 29 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -608,7 +623,7 @@ exports.ChallengeSchema = mongoose_1.SchemaFactory.createForClass(ChallengeEntit
 
 
 /***/ }),
-/* 29 */
+/* 30 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -626,7 +641,7 @@ exports.JwtAuthGuard = JwtAuthGuard = tslib_1.__decorate([
 
 
 /***/ }),
-/* 30 */
+/* 31 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -635,12 +650,12 @@ exports.SessionsModule = void 0;
 const tslib_1 = __webpack_require__(5);
 const common_1 = __webpack_require__(1);
 const mongoose_1 = __webpack_require__(8);
-const sessions_controller_1 = __webpack_require__(31);
-const sessions_service_1 = __webpack_require__(32);
-const session_schema_1 = __webpack_require__(33);
-const submission_schema_1 = __webpack_require__(34);
-const challenges_module_1 = __webpack_require__(25);
-const scoring_module_1 = __webpack_require__(44);
+const sessions_controller_1 = __webpack_require__(32);
+const sessions_service_1 = __webpack_require__(33);
+const session_schema_1 = __webpack_require__(34);
+const submission_schema_1 = __webpack_require__(35);
+const challenges_module_1 = __webpack_require__(26);
+const scoring_module_1 = __webpack_require__(45);
 let SessionsModule = class SessionsModule {
 };
 exports.SessionsModule = SessionsModule;
@@ -661,7 +676,7 @@ exports.SessionsModule = SessionsModule = tslib_1.__decorate([
 
 
 /***/ }),
-/* 31 */
+/* 32 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -671,9 +686,9 @@ exports.SessionsController = void 0;
 const tslib_1 = __webpack_require__(5);
 const common_1 = __webpack_require__(1);
 const swagger_1 = __webpack_require__(3);
-const sessions_service_1 = __webpack_require__(32);
-const jwt_auth_guard_1 = __webpack_require__(29);
-const current_user_decorator_1 = __webpack_require__(43);
+const sessions_service_1 = __webpack_require__(33);
+const jwt_auth_guard_1 = __webpack_require__(30);
+const current_user_decorator_1 = __webpack_require__(44);
 const shared_1 = __webpack_require__(17);
 let SessionsController = class SessionsController {
     constructor(sessionsService) {
@@ -738,7 +753,7 @@ exports.SessionsController = SessionsController = tslib_1.__decorate([
 
 
 /***/ }),
-/* 32 */
+/* 33 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -749,10 +764,10 @@ const tslib_1 = __webpack_require__(5);
 const common_1 = __webpack_require__(1);
 const mongoose_1 = __webpack_require__(8);
 const mongoose_2 = __webpack_require__(14);
-const session_schema_1 = __webpack_require__(33);
-const submission_schema_1 = __webpack_require__(34);
-const challenges_service_1 = __webpack_require__(27);
-const scoring_service_1 = __webpack_require__(35);
+const session_schema_1 = __webpack_require__(34);
+const submission_schema_1 = __webpack_require__(35);
+const challenges_service_1 = __webpack_require__(28);
+const scoring_service_1 = __webpack_require__(36);
 let SessionsService = class SessionsService {
     constructor(sessionModel, submissionModel, challengesService, scoringService) {
         this.sessionModel = sessionModel;
@@ -854,7 +869,7 @@ exports.SessionsService = SessionsService = tslib_1.__decorate([
 
 
 /***/ }),
-/* 33 */
+/* 34 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -906,7 +921,7 @@ exports.SessionSchema = mongoose_1.SchemaFactory.createForClass(SessionEntity);
 
 
 /***/ }),
-/* 34 */
+/* 35 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -958,7 +973,7 @@ exports.SubmissionSchema = mongoose_1.SchemaFactory.createForClass(SubmissionEnt
 
 
 /***/ }),
-/* 35 */
+/* 36 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -968,10 +983,10 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.ScoringService = void 0;
 const tslib_1 = __webpack_require__(5);
 const common_1 = __webpack_require__(1);
-const bullmq_1 = __webpack_require__(36);
-const bullmq_2 = __webpack_require__(37);
-const scoring_constants_1 = __webpack_require__(38);
-const ai_provider_factory_1 = __webpack_require__(39);
+const bullmq_1 = __webpack_require__(37);
+const bullmq_2 = __webpack_require__(38);
+const scoring_constants_1 = __webpack_require__(39);
+const ai_provider_factory_1 = __webpack_require__(40);
 let ScoringService = ScoringService_1 = class ScoringService {
     constructor(scoringQueue, aiFactory) {
         this.scoringQueue = scoringQueue;
@@ -1019,19 +1034,19 @@ exports.ScoringService = ScoringService = ScoringService_1 = tslib_1.__decorate(
 
 
 /***/ }),
-/* 36 */
+/* 37 */
 /***/ ((module) => {
 
 module.exports = require("@nestjs/bullmq");
 
 /***/ }),
-/* 37 */
+/* 38 */
 /***/ ((module) => {
 
 module.exports = require("bullmq");
 
 /***/ }),
-/* 38 */
+/* 39 */
 /***/ ((__unused_webpack_module, exports) => {
 
 
@@ -1041,7 +1056,7 @@ exports.SCORING_QUEUE = 'scoring';
 
 
 /***/ }),
-/* 39 */
+/* 40 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -1051,8 +1066,8 @@ exports.AiProviderFactory = void 0;
 const tslib_1 = __webpack_require__(5);
 const common_1 = __webpack_require__(1);
 const config_1 = __webpack_require__(6);
-const openai_provider_1 = __webpack_require__(40);
-const anthropic_provider_1 = __webpack_require__(42);
+const openai_provider_1 = __webpack_require__(41);
+const anthropic_provider_1 = __webpack_require__(43);
 let AiProviderFactory = class AiProviderFactory {
     constructor(config, openAi, anthropic) {
         this.config = config;
@@ -1074,7 +1089,7 @@ exports.AiProviderFactory = AiProviderFactory = tslib_1.__decorate([
 
 
 /***/ }),
-/* 40 */
+/* 41 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -1085,7 +1100,7 @@ exports.OpenAiProvider = void 0;
 const tslib_1 = __webpack_require__(5);
 const common_1 = __webpack_require__(1);
 const config_1 = __webpack_require__(6);
-const scoring_prompts_1 = __webpack_require__(41);
+const scoring_prompts_1 = __webpack_require__(42);
 let OpenAiProvider = OpenAiProvider_1 = class OpenAiProvider {
     constructor(config) {
         this.config = config;
@@ -1131,7 +1146,7 @@ exports.OpenAiProvider = OpenAiProvider = OpenAiProvider_1 = tslib_1.__decorate(
 
 
 /***/ }),
-/* 41 */
+/* 42 */
 /***/ ((__unused_webpack_module, exports) => {
 
 
@@ -1203,7 +1218,7 @@ Grade the User Code according to the criteria above and respond with JSON.`;
 
 
 /***/ }),
-/* 42 */
+/* 43 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -1214,7 +1229,7 @@ exports.AnthropicProvider = void 0;
 const tslib_1 = __webpack_require__(5);
 const common_1 = __webpack_require__(1);
 const config_1 = __webpack_require__(6);
-const scoring_prompts_1 = __webpack_require__(41);
+const scoring_prompts_1 = __webpack_require__(42);
 let AnthropicProvider = AnthropicProvider_1 = class AnthropicProvider {
     constructor(config) {
         this.config = config;
@@ -1261,7 +1276,7 @@ exports.AnthropicProvider = AnthropicProvider = AnthropicProvider_1 = tslib_1.__
 
 
 /***/ }),
-/* 43 */
+/* 44 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -1275,7 +1290,7 @@ exports.CurrentUser = (0, common_1.createParamDecorator)((_data, ctx) => {
 
 
 /***/ }),
-/* 44 */
+/* 45 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -1283,17 +1298,17 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.ScoringModule = void 0;
 const tslib_1 = __webpack_require__(5);
 const common_1 = __webpack_require__(1);
-const bullmq_1 = __webpack_require__(36);
+const bullmq_1 = __webpack_require__(37);
 const mongoose_1 = __webpack_require__(8);
 const config_1 = __webpack_require__(6);
-const scoring_service_1 = __webpack_require__(35);
-const scoring_processor_1 = __webpack_require__(45);
-const ai_provider_factory_1 = __webpack_require__(39);
-const openai_provider_1 = __webpack_require__(40);
-const anthropic_provider_1 = __webpack_require__(42);
-const submission_schema_1 = __webpack_require__(34);
-const session_schema_1 = __webpack_require__(33);
-const scoring_constants_1 = __webpack_require__(38);
+const scoring_service_1 = __webpack_require__(36);
+const scoring_processor_1 = __webpack_require__(46);
+const ai_provider_factory_1 = __webpack_require__(40);
+const openai_provider_1 = __webpack_require__(41);
+const anthropic_provider_1 = __webpack_require__(43);
+const submission_schema_1 = __webpack_require__(35);
+const session_schema_1 = __webpack_require__(34);
+const scoring_constants_1 = __webpack_require__(39);
 let ScoringModule = class ScoringModule {
 };
 exports.ScoringModule = ScoringModule;
@@ -1322,7 +1337,7 @@ exports.ScoringModule = ScoringModule = tslib_1.__decorate([
 
 
 /***/ }),
-/* 45 */
+/* 46 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -1331,14 +1346,14 @@ var _a, _b, _c;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.ScoringProcessor = void 0;
 const tslib_1 = __webpack_require__(5);
-const bullmq_1 = __webpack_require__(36);
+const bullmq_1 = __webpack_require__(37);
 const common_1 = __webpack_require__(1);
 const mongoose_1 = __webpack_require__(8);
 const mongoose_2 = __webpack_require__(14);
-const submission_schema_1 = __webpack_require__(34);
-const session_schema_1 = __webpack_require__(33);
-const ai_provider_factory_1 = __webpack_require__(39);
-const scoring_constants_1 = __webpack_require__(38);
+const submission_schema_1 = __webpack_require__(35);
+const session_schema_1 = __webpack_require__(34);
+const ai_provider_factory_1 = __webpack_require__(40);
+const scoring_constants_1 = __webpack_require__(39);
 let ScoringProcessor = ScoringProcessor_1 = class ScoringProcessor extends bullmq_1.WorkerHost {
     constructor(submissionModel, sessionModel, aiFactory) {
         super();

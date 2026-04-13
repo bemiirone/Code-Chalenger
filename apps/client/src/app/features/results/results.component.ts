@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { SessionService } from '../../core/services/session.service';
 import { MarkdownPipe } from '../../core/pipes/markdown.pipe';
-import { Session, Challenge } from '@code-challenger/shared';
+import { Session, Challenge, TIMER_DURATIONS } from '@code-challenger/shared';
 
 @Component({
   standalone: true,
@@ -66,7 +66,7 @@ import { Session, Challenge } from '@code-challenger/shared';
                     </button>
                     @if (showSolution().has(i)) {
                       <div class="markdown-body mt-2"
-                        [innerHTML]="codeBlock(result.userCode) | markdown"></div>
+                        [innerHTML]="codeBlock(result.userCode, result.challengeId) | markdown"></div>
                     }
                   </div>
                 </div>
@@ -122,18 +122,17 @@ export class ResultsComponent implements OnInit {
     });
   }
 
-  codeBlock(code: string): string {
-    return '```typescript\n' + code + '\n```';
+  codeBlock(code: string, challengeId: string): string {
+    const challenges = this.session()?.challenges as unknown as Challenge[];
+    const lang = challenges?.find((c) => c._id === challengeId)?.language ?? 'typescript';
+    const fenceLang = lang.startsWith('angular') ? 'typescript' : lang === 'css3' ? 'css' : lang;
+    return '```' + fenceLang + '\n' + code + '\n```';
   }
-
-  private readonly TIMER_DURATIONS: Record<string, number> = {
-    Easy: 900, Medium: 1200, Hard: 1800,
-  };
 
   allowedTime(challengeId: string): string {
     const challenges = this.session()?.challenges as unknown as Challenge[];
     const challenge = challenges?.find((c) => c._id === challengeId);
-    const seconds = this.TIMER_DURATIONS[challenge?.difficulty ?? ''] ?? null;
+    const seconds = challenge?.difficulty ? TIMER_DURATIONS[challenge.difficulty] : null;
     if (!seconds) return '—';
     return `${seconds / 60}m`;
   }

@@ -4,7 +4,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { SessionService } from '../../core/services/session.service';
 import { MonacoEditorComponent } from './monaco-editor.component';
 import { MarkdownPipe } from '../../core/pipes/markdown.pipe';
-import { Challenge, Session, ScoringResult } from '@code-challenger/shared';
+import { Challenge, Session, ScoringResult, TIMER_DURATIONS } from '@code-challenger/shared';
 
 @Component({
   standalone: true,
@@ -46,7 +46,8 @@ import { Challenge, Session, ScoringResult } from '@code-challenger/shared';
           <!-- Right: Editor + submit -->
           <main class="flex-1 flex flex-col p-4 gap-4">
             <app-monaco-editor
-              [(value)]="userCode"
+              [value]="userCode()"
+              (valueChange)="userCode.set($event)"
               [language]="editorLanguage()"
               height="calc(100vh - 220px)"
             />
@@ -85,7 +86,7 @@ export class ChallengeRunnerComponent implements OnInit, OnDestroy {
   loading = signal(true);
   submitting = signal(false);
   result = signal<ScoringResult | null>(null);
-  userCode = '';
+  userCode = signal('');
 
   session = signal<Session | null>(null);
 
@@ -97,10 +98,6 @@ export class ChallengeRunnerComponent implements OnInit, OnDestroy {
   });
   private timerInterval: ReturnType<typeof setInterval> | null = null;
   private challengeStartTime = 0;
-
-  private readonly TIMER_DURATIONS: Record<string, number> = {
-    Easy: 900, Medium: 1200, Hard: 1800,
-  };
 
   currentChallenge = computed<Challenge | null>(() => {
     const s = this.session();
@@ -116,7 +113,7 @@ export class ChallengeRunnerComponent implements OnInit, OnDestroy {
     return lang;
   });
 
-  progress = computed(() => (this.sessions.currentChallengeIndex() / (this.session()?.challenges?.length ?? 5)) * 100);
+  progress = computed(() => ((this.sessions.currentChallengeIndex() + 1) / (this.session()?.challenges?.length ?? 5)) * 100);
   isLast = computed(() => this.sessions.currentChallengeIndex() >= (this.session()?.challenges?.length ?? 5) - 1);
 
   constructor(
@@ -129,7 +126,7 @@ export class ChallengeRunnerComponent implements OnInit, OnDestroy {
     const id = this.route.snapshot.paramMap.get('id')!;
     const s = await this.sessions.loadSession(id);
     this.session.set(s);
-    this.userCode = this.currentChallenge()?.starter_code ?? '';
+    this.userCode.set(this.currentChallenge()?.starter_code ?? '');
     this.loading.set(false);
 
     this.timerEnabled = history.state?.timerEnabled === true;
@@ -145,7 +142,7 @@ export class ChallengeRunnerComponent implements OnInit, OnDestroy {
     this.clearTimer();
     this.challengeStartTime = Date.now();
     const difficulty = this.currentChallenge()?.difficulty ?? 'Easy';
-    this.timeRemaining.set(this.TIMER_DURATIONS[difficulty] ?? 300);
+    this.timeRemaining.set(TIMER_DURATIONS[difficulty]);
     this.timerInterval = setInterval(() => {
       const remaining = this.timeRemaining() - 1;
       if (remaining <= 0) {
@@ -177,7 +174,7 @@ export class ChallengeRunnerComponent implements OnInit, OnDestroy {
       const res = await this.sessions.submitAnswer({
         sessionId: s._id,
         challengeId: challenge._id,
-        userCode: this.userCode,
+        userCode: this.userCode(),
         elapsedSeconds,
       });
       this.result.set(res);
@@ -194,7 +191,7 @@ export class ChallengeRunnerComponent implements OnInit, OnDestroy {
     } else {
       this.sessions.advanceChallenge();
       this.result.set(null);
-      this.userCode = this.currentChallenge()?.starter_code ?? '';
+      this.userCode.set(this.currentChallenge()?.starter_code ?? '');
       this.challengeStartTime = Date.now();
       if (this.timerEnabled) this.startTimer();
     }

@@ -26,7 +26,7 @@ export class SubmissionEntity {
   @Prop({ type: String, default: 'pending', enum: ['pending', 'scored', 'failed'] })
   status!: string;
 
-  @Prop({ default: null })
+  @Prop({ type: String, default: null })
   jobId!: string | null;
 }
 

@@ -983,7 +983,7 @@ tslib_1.__decorate([
     tslib_1.__metadata("design:type", String)
 ], SubmissionEntity.prototype, "status", void 0);
 tslib_1.__decorate([
-    (0, mongoose_1.Prop)({ default: null }),
+    (0, mongoose_1.Prop)({ type: String, default: null }),
     tslib_1.__metadata("design:type", String)
 ], SubmissionEntity.prototype, "jobId", void 0);
 exports.SubmissionEntity = SubmissionEntity = tslib_1.__decorate([

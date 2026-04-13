@@ -1,4 +1,4 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
@@ -75,15 +75,22 @@ const DIFFICULTY_ORDER: Difficulty[] = ['Easy', 'Medium', 'Hard'];
         @if (configsLoading()) {
           <div class="text-[#9d9d9d] text-sm">Loading sessions…</div>
         } @else {
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            @for (cfg of configs(); track cfg.language + cfg.difficulty) {
-              <button (click)="start(cfg)" [disabled]="loading()"
-                class="flex flex-col items-start p-5 rounded-lg bg-[#252526] border border-[#3c3c3c] hover:border-[#007acc] text-left transition disabled:opacity-50">
-                <span class="text-white font-medium">{{ cfg.label }}</span>
-                <span class="mt-1 text-sm px-2 py-0.5 rounded" [class]="difficultyClass(cfg.difficulty)">
-                  {{ cfg.difficulty }}
-                </span>
-              </button>
+          <div class="space-y-6">
+            @for (group of groupedConfigs(); track group.language) {
+              <div>
+                <h3 class="text-[#e4d7d7] text-xs font-semibold uppercase tracking-widest mb-3">{{ group.label }}</h3>
+                <div class="flex gap-3 flex-wrap">
+                  @for (cfg of group.configs; track cfg.difficulty) {
+                    <button (click)="start(cfg)" [disabled]="loading()"
+                      class="flex flex-col items-start p-5 rounded-lg bg-[#252526] border border-[#3c3c3c] hover:border-[#007acc] text-left transition disabled:opacity-50 min-w-[140px]">
+                      <span class="text-white font-medium text-sm">{{ cfg.difficulty }}</span>
+                      <span class="mt-1 text-xs px-2 py-0.5 rounded" [class]="difficultyClass(cfg.difficulty)">
+                        {{ cfg.difficulty === 'Easy' ? '15 min' : cfg.difficulty === 'Medium' ? '20 min' : '30 min' }}
+                      </span>
+                    </button>
+                  }
+                </div>
+              </div>
             }
           </div>
         }
@@ -127,6 +134,17 @@ export class DashboardComponent implements OnInit {
   timerEnabled = signal(false);
   challengeCount = signal<1 | 3 | 5>(3);
   pastSessions = signal<Session[]>([]);
+
+  groupedConfigs = computed(() => {
+    const map = new Map<string, { language: string; label: string; configs: SessionConfig[] }>();
+    for (const cfg of this.configs()) {
+      if (!map.has(cfg.language)) {
+        map.set(cfg.language, { language: cfg.language, label: cfg.label, configs: [] });
+      }
+      map.get(cfg.language)!.configs.push(cfg);
+    }
+    return [...map.values()];
+  });
 
   constructor(
     readonly auth: AuthService,

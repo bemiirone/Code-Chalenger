@@ -21,4 +21,5 @@ export interface Session {
   score: number;
   results: SubmissionResult[];
   timestamp: Date;
+  createdAt?: string;
 }

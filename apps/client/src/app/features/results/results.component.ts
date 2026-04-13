@@ -39,7 +39,7 @@ import { Session, Challenge, TIMER_DURATIONS } from '@code-challenger/shared';
               <button (click)="toggle(i)"
                 class="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-[#2d2d2d]">
                 <div class="flex items-center gap-3">
-                  <span class="text-white font-medium">Challenge {{ i + 1 }}</span>
+                  <span class="text-white font-medium">{{ challengeTitle(result.challengeId, i) }}</span>
                   <span class="text-xs px-2 py-0.5 rounded font-medium"
                     [class]="result.score >= 70 ? 'text-green-400 bg-green-900/30' : 'text-red-400 bg-red-900/30'">
                     {{ result.score >= 70 ? 'Passed' : 'Failed' }}
@@ -90,6 +90,11 @@ export class ResultsComponent implements OnInit {
   totalElapsed = computed(() =>
     (this.session()?.results ?? []).reduce((sum, r) => sum + (r.elapsedSeconds ?? 0), 0),
   );
+  private challengeMap = computed(() => {
+    const challenges = this.session()?.challenges as unknown as Challenge[];
+    return new Map((challenges ?? []).map((c) => [c._id, c]));
+  });
+
   scoreColor = computed(() => {
     const s = this.session()?.score ?? 0;
     const count = this.session()?.challenges?.length ?? 5;
@@ -122,16 +127,18 @@ export class ResultsComponent implements OnInit {
     });
   }
 
+  challengeTitle(challengeId: string, index: number): string {
+    return this.challengeMap().get(challengeId)?.title ?? `Challenge ${index + 1}`;
+  }
+
   codeBlock(code: string, challengeId: string): string {
-    const challenges = this.session()?.challenges as unknown as Challenge[];
-    const lang = challenges?.find((c) => c._id === challengeId)?.language ?? 'typescript';
+    const lang = this.challengeMap().get(challengeId)?.language ?? 'typescript';
     const fenceLang = lang.startsWith('angular') ? 'typescript' : lang === 'css3' ? 'css' : lang;
     return '```' + fenceLang + '\n' + code + '\n```';
   }
 
   allowedTime(challengeId: string): string {
-    const challenges = this.session()?.challenges as unknown as Challenge[];
-    const challenge = challenges?.find((c) => c._id === challengeId);
+    const challenge = this.challengeMap().get(challengeId);
     const seconds = challenge?.difficulty ? TIMER_DURATIONS[challenge.difficulty] : null;
     if (!seconds) return '—';
     return `${seconds / 60}m`;

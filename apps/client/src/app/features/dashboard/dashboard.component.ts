@@ -1,10 +1,10 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 import { SessionService } from '../../core/services/session.service';
 import { ChallengesService } from '../../core/services/challenges.service';
-import { Difficulty } from '@code-challenger/shared';
+import { Difficulty, Session } from '@code-challenger/shared';
 
 interface SessionConfig {
   language: string;
@@ -24,7 +24,7 @@ const DIFFICULTY_ORDER: Difficulty[] = ['Easy', 'Medium', 'Hard'];
 
 @Component({
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, RouterLink],
   template: `
     <div class="min-h-screen bg-[#1e1e1e] p-6">
       <header class="flex items-center justify-between mb-8">
@@ -92,6 +92,30 @@ const DIFFICULTY_ORDER: Difficulty[] = ['Easy', 'Medium', 'Hard'];
           <p class="mt-4 text-red-400 text-sm">{{ error() }}</p>
         }
       </section>
+
+      @if (pastSessions().length > 0) {
+        <section class="mt-10">
+          <h2 class="text-lg font-semibold text-white mb-4">Past Sessions</h2>
+          <div class="space-y-2">
+            @for (s of pastSessions(); track s._id) {
+              <a [routerLink]="['/results', s._id]"
+                class="flex items-center justify-between px-5 py-3 rounded-lg bg-[#252526] border border-[#3c3c3c] hover:border-[#007acc] transition">
+                <div class="flex items-center gap-3">
+                  <span class="text-[#9d9d9d] text-sm">{{ formatDate(s.createdAt) }}</span>
+                  <span class="text-xs px-2 py-0.5 rounded font-medium"
+                    [class]="s.status === 'Completed' ? 'text-green-400 bg-green-900/30' : 'text-yellow-400 bg-yellow-900/30'">
+                    {{ s.status }}
+                  </span>
+                </div>
+                <div class="flex items-center gap-4">
+                  <span class="text-[#9d9d9d] text-sm">{{ s.results.length }}/{{ s.challenges.length }} answered</span>
+                  <span class="text-white font-semibold text-sm">{{ s.score }} pts</span>
+                </div>
+              </a>
+            }
+          </div>
+        </section>
+      }
     </div>
   `,
 })
@@ -102,6 +126,7 @@ export class DashboardComponent implements OnInit {
   error = signal('');
   timerEnabled = signal(false);
   challengeCount = signal<1 | 3 | 5>(3);
+  pastSessions = signal<Session[]>([]);
 
   constructor(
     readonly auth: AuthService,
@@ -111,10 +136,14 @@ export class DashboardComponent implements OnInit {
   ) {}
 
   async ngOnInit() {
-    try {
-      const languages = await this.challenges.getLanguages();
+    const [languages, sessions] = await Promise.allSettled([
+      this.challenges.getLanguages(),
+      this.sessions.listSessions(),
+    ]);
+
+    if (languages.status === 'fulfilled') {
       const configs: SessionConfig[] = [];
-      for (const info of languages) {
+      for (const info of languages.value) {
         const label = LANGUAGE_LABELS[info.language] ?? info.language;
         for (const diff of DIFFICULTY_ORDER) {
           if (info.difficulties.includes(diff)) {
@@ -123,11 +152,20 @@ export class DashboardComponent implements OnInit {
         }
       }
       this.configs.set(configs);
-    } catch {
+    } else {
       this.error.set('Could not load available sessions.');
-    } finally {
-      this.configsLoading.set(false);
     }
+
+    if (sessions.status === 'fulfilled') {
+      this.pastSessions.set(sessions.value);
+    }
+
+    this.configsLoading.set(false);
+  }
+
+  formatDate(dateStr?: string): string {
+    if (!dateStr) return '';
+    return new Date(dateStr).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
   }
 
   difficultyClass(d: Difficulty): string {

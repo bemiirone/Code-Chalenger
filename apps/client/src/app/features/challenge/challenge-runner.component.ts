@@ -19,7 +19,7 @@ import { Challenge, Session, ScoringResult, TIMER_DURATIONS } from '@code-challe
         </span>
         @if (timerEnabled) {
           <span class="font-mono text-sm px-3 py-1 rounded"
-            [class]="timeRemaining() <= 60 ? 'text-red-400 bg-red-900/30' : 'text-[#9d9d9d]'">
+            [class]="timeRemaining() <= 60 ? 'text-red-400 bg-red-900/30' : 'text-green-400'">
             {{ timerDisplay() }}
           </span>
         }
@@ -54,10 +54,15 @@ import { Challenge, Session, ScoringResult, TIMER_DURATIONS } from '@code-challe
 
             <div class="flex flex-col gap-4">
               @if (!result()) {
-                <button (click)="submit()" [disabled]="submitting()"
-                  class="self-start px-6 py-2 bg-[#007acc] hover:bg-[#1a8ad4] text-white rounded font-medium disabled:opacity-50">
-                  {{ submitting() ? 'Submitting…' : 'Submit Answer' }}
-                </button>
+                <div class="flex items-center gap-4">
+                  <button (click)="submit()" [disabled]="submitting()"
+                    class="px-6 py-2 bg-[#007acc] hover:bg-[#1a8ad4] text-white rounded font-medium disabled:opacity-50">
+                    {{ submitting() ? 'Submitting…' : 'Submit Answer' }}
+                  </button>
+                  @if (submitError()) {
+                    <span class="text-red-400 text-sm">{{ submitError() }}</span>
+                  }
+                </div>
               }
 
               @if (result()) {
@@ -86,6 +91,7 @@ export class ChallengeRunnerComponent implements OnInit, OnDestroy {
   loading = signal(true);
   submitting = signal(false);
   result = signal<ScoringResult | null>(null);
+  submitError = signal<string | null>(null);
   userCode = signal('');
 
   session = signal<Session | null>(null);
@@ -168,6 +174,7 @@ export class ChallengeRunnerComponent implements OnInit, OnDestroy {
     if (!challenge || !s) return;
 
     this.submitting.set(true);
+    this.submitError.set(null);
     this.clearTimer();
     try {
       const elapsedSeconds = Math.round((Date.now() - this.challengeStartTime) / 1000);
@@ -179,7 +186,8 @@ export class ChallengeRunnerComponent implements OnInit, OnDestroy {
       });
       this.result.set(res);
     } catch {
-      this.result.set({ score: 0, feedback: 'Submission failed. Please try again.', jobId: '' });
+      this.submitError.set('Submission failed — please try again.');
+      if (this.timerEnabled) this.startTimer();
     } finally {
       this.submitting.set(false);
     }
@@ -191,6 +199,7 @@ export class ChallengeRunnerComponent implements OnInit, OnDestroy {
     } else {
       this.sessions.advanceChallenge();
       this.result.set(null);
+      this.submitError.set(null);
       this.userCode.set(this.currentChallenge()?.starter_code ?? '');
       this.challengeStartTime = Date.now();
       if (this.timerEnabled) this.startTimer();

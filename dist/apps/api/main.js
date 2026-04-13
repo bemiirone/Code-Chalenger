@@ -444,6 +444,9 @@ let ChallengesController = class ChallengesController {
     findAll(language, difficulty) {
         return this.challengesService.findAll(language, difficulty);
     }
+    getLanguages() {
+        return this.challengesService.getLanguages();
+    }
     findOne(id) {
         return this.challengesService.findById(id);
     }
@@ -460,6 +463,13 @@ tslib_1.__decorate([
     tslib_1.__metadata("design:paramtypes", [String, typeof (_b = typeof shared_1.Difficulty !== "undefined" && shared_1.Difficulty) === "function" ? _b : Object]),
     tslib_1.__metadata("design:returntype", void 0)
 ], ChallengesController.prototype, "findAll", null);
+tslib_1.__decorate([
+    (0, common_1.Get)('languages'),
+    (0, swagger_1.ApiOperation)({ summary: 'Get distinct languages and their available difficulties' }),
+    tslib_1.__metadata("design:type", Function),
+    tslib_1.__metadata("design:paramtypes", []),
+    tslib_1.__metadata("design:returntype", void 0)
+], ChallengesController.prototype, "getLanguages", null);
 tslib_1.__decorate([
     (0, common_1.Get)(':id'),
     (0, swagger_1.ApiOperation)({ summary: 'Get challenge by ID (no solution_code)' }),
@@ -515,6 +525,15 @@ let ChallengesService = class ChallengesService {
         if (difficulty)
             filter['difficulty'] = difficulty;
         return this.challengeModel.find(filter).select('-solution_code').exec();
+    }
+    async getLanguages() {
+        const rows = await this.challengeModel
+            .aggregate([
+            { $group: { _id: '$language', difficulties: { $addToSet: '$difficulty' } } },
+            { $sort: { _id: 1 } },
+        ])
+            .exec();
+        return rows.map((r) => ({ language: r._id, difficulties: r.difficulties }));
     }
 };
 exports.ChallengesService = ChallengesService;
@@ -805,6 +824,7 @@ let SessionsService = class SessionsService {
             score: result.score,
             feedback: result.feedback,
             userCode: dto.userCode,
+            elapsedSeconds: dto.elapsedSeconds ?? 0,
         });
         const answered = session.results.length;
         if (answered >= 5) {
@@ -871,6 +891,7 @@ tslib_1.__decorate([
                 score: Number,
                 feedback: String,
                 userCode: String,
+                elapsedSeconds: { type: Number, default: 0 },
             },
         ],
         default: [],

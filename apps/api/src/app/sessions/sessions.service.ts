@@ -86,6 +86,7 @@ export class SessionsService {
       score: result.score,
       feedback: result.feedback,
       userCode: dto.userCode,
+      elapsedSeconds: dto.elapsedSeconds ?? 0,
     });
 
     const answered = session.results.length;

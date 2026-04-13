@@ -25,6 +25,7 @@ export class SessionEntity {
         score: Number,
         feedback: String,
         userCode: String,
+        elapsedSeconds: { type: Number, default: 0 },
       },
     ],
     default: [],
@@ -34,6 +35,7 @@ export class SessionEntity {
     score: number;
     feedback: string;
     userCode: string;
+    elapsedSeconds: number;
   }>;
 }
 

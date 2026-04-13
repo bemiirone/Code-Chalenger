@@ -44,7 +44,12 @@ import { Session } from '@code-challenger/shared';
                     {{ result.score >= 70 ? 'Passed' : 'Failed' }}
                   </span>
                 </div>
-                <span class="text-white font-semibold">{{ result.score }}/100</span>
+                <div class="flex items-center gap-4">
+                  @if (result.elapsedSeconds) {
+                    <span class="text-[#9d9d9d] text-xs">{{ formatTime(result.elapsedSeconds) }}</span>
+                  }
+                  <span class="text-white font-semibold">{{ result.score }}/100</span>
+                </div>
               </button>
 
               @if (expanded().has(i)) {
@@ -114,5 +119,12 @@ export class ResultsComponent implements OnInit {
 
   codeBlock(code: string): string {
     return '```typescript\n' + code + '\n```';
+  }
+
+  formatTime(seconds?: number): string {
+    if (!seconds) return '—';
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return m > 0 ? `${m}m ${s}s` : `${s}s`;
   }
 }

@@ -1,4 +1,4 @@
-import { Component, OnInit, signal, computed } from '@angular/core';
+import { Component, OnInit, OnDestroy, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { SessionService } from '../../core/services/session.service';
@@ -17,6 +17,12 @@ import { Challenge, Session, ScoringResult } from '@code-challenger/shared';
         <span class="text-[#9d9d9d] text-sm">
           Challenge {{ sessions.currentChallengeIndex() + 1 }} of 5
         </span>
+        @if (timerEnabled) {
+          <span class="font-mono text-sm px-3 py-1 rounded"
+            [class]="timeRemaining() <= 60 ? 'text-red-400 bg-red-900/30' : 'text-[#9d9d9d]'">
+            {{ timerDisplay() }}
+          </span>
+        }
         <div class="w-32 bg-[#3c3c3c] rounded-full h-1.5">
           <div class="bg-[#007acc] h-1.5 rounded-full transition-all"
             [style.width]="progress() + '%'"></div>
@@ -75,13 +81,26 @@ import { Challenge, Session, ScoringResult } from '@code-challenger/shared';
     </div>
   `,
 })
-export class ChallengeRunnerComponent implements OnInit {
+export class ChallengeRunnerComponent implements OnInit, OnDestroy {
   loading = signal(true);
   submitting = signal(false);
   result = signal<ScoringResult | null>(null);
   userCode = '';
 
   session = signal<Session | null>(null);
+
+  timerEnabled = false;
+  timeRemaining = signal(0);
+  timerDisplay = computed(() => {
+    const s = this.timeRemaining();
+    return `${Math.floor(s / 60).toString().padStart(2, '0')}:${(s % 60).toString().padStart(2, '0')}`;
+  });
+  private timerInterval: ReturnType<typeof setInterval> | null = null;
+  private challengeStartTime = 0;
+
+  private readonly TIMER_DURATIONS: Record<string, number> = {
+    Easy: 300, Medium: 480, Hard: 720,
+  };
 
   currentChallenge = computed<Challenge | null>(() => {
     const s = this.session();
@@ -92,7 +111,9 @@ export class ChallengeRunnerComponent implements OnInit {
 
   editorLanguage = computed(() => {
     const lang = this.currentChallenge()?.language ?? 'typescript';
-    return lang.startsWith('angular') ? 'typescript' : lang;
+    if (lang.startsWith('angular')) return 'typescript';
+    if (lang === 'css3') return 'css';
+    return lang;
   });
 
   progress = computed(() => ((this.sessions.currentChallengeIndex()) / 5) * 100);
@@ -110,6 +131,38 @@ export class ChallengeRunnerComponent implements OnInit {
     this.session.set(s);
     this.userCode = this.currentChallenge()?.starter_code ?? '';
     this.loading.set(false);
+
+    this.timerEnabled = history.state?.timerEnabled === true;
+    this.challengeStartTime = Date.now();
+    if (this.timerEnabled) this.startTimer();
+  }
+
+  ngOnDestroy() {
+    this.clearTimer();
+  }
+
+  private startTimer() {
+    this.clearTimer();
+    this.challengeStartTime = Date.now();
+    const difficulty = this.currentChallenge()?.difficulty ?? 'Easy';
+    this.timeRemaining.set(this.TIMER_DURATIONS[difficulty] ?? 300);
+    this.timerInterval = setInterval(() => {
+      const remaining = this.timeRemaining() - 1;
+      if (remaining <= 0) {
+        this.timeRemaining.set(0);
+        this.clearTimer();
+        this.submit();
+      } else {
+        this.timeRemaining.set(remaining);
+      }
+    }, 1000);
+  }
+
+  private clearTimer() {
+    if (this.timerInterval !== null) {
+      clearInterval(this.timerInterval);
+      this.timerInterval = null;
+    }
   }
 
   async submit() {
@@ -118,11 +171,14 @@ export class ChallengeRunnerComponent implements OnInit {
     if (!challenge || !s) return;
 
     this.submitting.set(true);
+    this.clearTimer();
     try {
+      const elapsedSeconds = Math.round((Date.now() - this.challengeStartTime) / 1000);
       const res = await this.sessions.submitAnswer({
         sessionId: s._id,
         challengeId: challenge._id,
         userCode: this.userCode,
+        elapsedSeconds,
       });
       this.result.set(res);
     } catch {
@@ -139,6 +195,8 @@ export class ChallengeRunnerComponent implements OnInit {
       this.sessions.advanceChallenge();
       this.result.set(null);
       this.userCode = this.currentChallenge()?.starter_code ?? '';
+      this.challengeStartTime = Date.now();
+      if (this.timerEnabled) this.startTimer();
     }
   }
 }

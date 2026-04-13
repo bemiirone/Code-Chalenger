@@ -1,8 +1,9 @@
-import { Component, signal } from '@angular/core';
+import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 import { SessionService } from '../../core/services/session.service';
+import { ChallengesService } from '../../core/services/challenges.service';
 import { Difficulty } from '@code-challenger/shared';
 
 interface SessionConfig {
@@ -11,14 +12,15 @@ interface SessionConfig {
   difficulty: Difficulty;
 }
 
-const CONFIGS: SessionConfig[] = [
-  { language: 'angular-ts', label: 'Angular (v19)', difficulty: 'Easy' },
-  { language: 'angular-ts', label: 'Angular (v19)', difficulty: 'Medium' },
-  { language: 'angular-ts', label: 'Angular (v19)', difficulty: 'Hard' },
-  { language: 'typescript', label: 'TypeScript', difficulty: 'Easy' },
-  { language: 'typescript', label: 'TypeScript', difficulty: 'Medium' },
-  { language: 'typescript', label: 'TypeScript', difficulty: 'Hard' },
-];
+// Display labels for known language codes. Add one line here when seeding a new language.
+const LANGUAGE_LABELS: Record<string, string> = {
+  'angular-ts': 'Angular (v19)',
+  'javascript': 'JavaScript (ES6+)',
+  'typescript': 'TypeScript',
+  'css3': 'CSS3 (Modern)',
+};
+
+const DIFFICULTY_ORDER: Difficulty[] = ['Easy', 'Medium', 'Hard'];
 
 @Component({
   standalone: true,
@@ -38,18 +40,39 @@ const CONFIGS: SessionConfig[] = [
 
       <section>
         <h2 class="text-lg font-semibold text-white mb-4">Start a Challenge Session</h2>
-        <p class="text-[#9d9d9d] text-sm mb-6">Each session contains 5 random challenges. Your code is scored by AI.</p>
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          @for (cfg of configs; track cfg.label + cfg.difficulty) {
-            <button (click)="start(cfg)" [disabled]="loading()"
-              class="flex flex-col items-start p-5 rounded-lg bg-[#252526] border border-[#3c3c3c] hover:border-[#007acc] text-left transition disabled:opacity-50">
-              <span class="text-white font-medium">{{ cfg.label }}</span>
-              <span class="mt-1 text-sm px-2 py-0.5 rounded" [class]="difficultyClass(cfg.difficulty)">
-                {{ cfg.difficulty }}
-              </span>
-            </button>
-          }
-        </div>
+        <p class="text-[#9d9d9d] text-sm mb-4">Each session contains 5 random challenges. Your code is scored by AI.</p>
+
+        <label class="flex items-center gap-3 mb-6 cursor-pointer w-fit">
+          <div class="relative">
+            <input type="checkbox" class="sr-only" [checked]="timerEnabled()"
+              (change)="timerEnabled.set($any($event.target).checked)">
+            <div class="w-10 h-6 rounded-full transition-colors"
+              [class]="timerEnabled() ? 'bg-[#007acc]' : 'bg-[#3c3c3c]'"></div>
+            <div class="absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform"
+              [class]="timerEnabled() ? 'translate-x-4' : 'translate-x-0'"></div>
+          </div>
+          <div>
+            <span class="text-white text-sm font-medium">Enable timer</span>
+            <span class="block text-[#9d9d9d] text-xs">Easy 5 min · Medium 8 min · Hard 12 min</span>
+          </div>
+        </label>
+
+        @if (configsLoading()) {
+          <div class="text-[#9d9d9d] text-sm">Loading sessions…</div>
+        } @else {
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            @for (cfg of configs(); track cfg.language + cfg.difficulty) {
+              <button (click)="start(cfg)" [disabled]="loading()"
+                class="flex flex-col items-start p-5 rounded-lg bg-[#252526] border border-[#3c3c3c] hover:border-[#007acc] text-left transition disabled:opacity-50">
+                <span class="text-white font-medium">{{ cfg.label }}</span>
+                <span class="mt-1 text-sm px-2 py-0.5 rounded" [class]="difficultyClass(cfg.difficulty)">
+                  {{ cfg.difficulty }}
+                </span>
+              </button>
+            }
+          </div>
+        }
+
         @if (error()) {
           <p class="mt-4 text-red-400 text-sm">{{ error() }}</p>
         }
@@ -57,16 +80,39 @@ const CONFIGS: SessionConfig[] = [
     </div>
   `,
 })
-export class DashboardComponent {
-  configs = CONFIGS;
+export class DashboardComponent implements OnInit {
+  configs = signal<SessionConfig[]>([]);
+  configsLoading = signal(true);
   loading = signal(false);
   error = signal('');
+  timerEnabled = signal(false);
 
   constructor(
     readonly auth: AuthService,
     private sessions: SessionService,
+    private challenges: ChallengesService,
     private router: Router,
   ) {}
+
+  async ngOnInit() {
+    try {
+      const languages = await this.challenges.getLanguages();
+      const configs: SessionConfig[] = [];
+      for (const info of languages) {
+        const label = LANGUAGE_LABELS[info.language] ?? info.language;
+        for (const diff of DIFFICULTY_ORDER) {
+          if (info.difficulties.includes(diff)) {
+            configs.push({ language: info.language, label, difficulty: diff });
+          }
+        }
+      }
+      this.configs.set(configs);
+    } catch {
+      this.error.set('Could not load available sessions.');
+    } finally {
+      this.configsLoading.set(false);
+    }
+  }
 
   difficultyClass(d: Difficulty): string {
     return {
@@ -81,7 +127,9 @@ export class DashboardComponent {
     this.error.set('');
     try {
       const session = await this.sessions.startSession({ language: cfg.language, difficulty: cfg.difficulty });
-      await this.router.navigate(['/challenge', session._id]);
+      await this.router.navigate(['/challenge', session._id], {
+        state: { timerEnabled: this.timerEnabled() }
+      });
     } catch {
       this.error.set('Could not start session. Make sure challenges exist in the database.');
     } finally {

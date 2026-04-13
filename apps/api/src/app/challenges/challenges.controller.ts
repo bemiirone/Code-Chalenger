@@ -22,6 +22,12 @@ export class ChallengesController {
     return this.challengesService.findAll(language, difficulty);
   }
 
+  @Get('languages')
+  @ApiOperation({ summary: 'Get distinct languages and their available difficulties' })
+  getLanguages() {
+    return this.challengesService.getLanguages();
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Get challenge by ID (no solution_code)' })
   findOne(@Param('id') id: string) {

@@ -9,6 +9,7 @@ export interface SubmitAnswerDto {
   sessionId: string;
   challengeId: string;
   userCode: string;
+  elapsedSeconds: number;
 }
 
 export interface ScoringResult {

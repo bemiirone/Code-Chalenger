@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
+import { InjectConnection, InjectModel } from '@nestjs/mongoose';
+import { Connection, Model, Types } from 'mongoose';
 import { SessionEntity, SessionDocument } from '../database/schemas/session.schema';
 import { SubmissionEntity, SubmissionDocument } from '../database/schemas/submission.schema';
 import { ChallengesService } from '../challenges/challenges.service';
@@ -10,6 +10,7 @@ import { StartSessionDto, SubmitAnswerDto, ScoringResult } from '@code-challenge
 @Injectable()
 export class SessionsService {
   constructor(
+    @InjectConnection() private connection: Connection,
     @InjectModel(SessionEntity.name) private sessionModel: Model<SessionDocument>,
     @InjectModel(SubmissionEntity.name) private submissionModel: Model<SubmissionDocument>,
     private challengesService: ChallengesService,
@@ -42,9 +43,8 @@ export class SessionsService {
   }
 
   async submitAnswer(userId: string, dto: SubmitAnswerDto): Promise<ScoringResult> {
-    const session = await this.sessionModel
-      .findById(dto.sessionId)
-      .exec();
+    // --- Validate (no transaction needed) ---
+    const session = await this.sessionModel.findById(dto.sessionId).exec();
     if (!session) throw new NotFoundException('Session not found');
     if (session.user_id.toString() !== userId) throw new ForbiddenException();
     if (session.status !== 'Active') throw new BadRequestException('Session is already completed');
@@ -56,6 +56,7 @@ export class SessionsService {
 
     const challenge = await this.challengesService.findById(dto.challengeId);
 
+    // --- Create submission record outside transaction (records the attempt) ---
     const submission = await this.submissionModel.create({
       user_id: new Types.ObjectId(userId),
       session_id: new Types.ObjectId(dto.sessionId),
@@ -64,6 +65,7 @@ export class SessionsService {
       status: 'pending',
     });
 
+    // --- Score outside transaction (remote call; cannot participate in a DB transaction) ---
     const result = await this.scoringService.scoreNow({
       submissionId: submission._id.toString(),
       challengePrompt: challenge.description,
@@ -74,30 +76,52 @@ export class SessionsService {
       targetVersion: challenge.version_constraints[0] ?? 'latest',
     });
 
-    // Persist real score on submission
-    await this.submissionModel.findByIdAndUpdate(submission._id, {
-      score: result.score,
-      feedback: result.feedback,
-      status: 'scored',
-    });
-
-    // Update session results with real score
-    session.results.push({
+    // --- Persist atomically: submission update + session update must both succeed ---
+    // Uses findByIdAndUpdate (not mutate-and-save) so the callback is safe to retry
+    // on transient write conflicts. Requires MongoDB replica set or Atlas.
+    const resultEntry = {
       challengeId: new Types.ObjectId(dto.challengeId),
       score: result.score,
       feedback: result.feedback,
       userCode: dto.userCode,
       elapsedSeconds: dto.elapsedSeconds ?? 0,
-    });
+    };
+    const answeredCount = session.results.length + 1;
+    const newStatus = answeredCount >= session.challenges.length ? 'Completed' : 'Active';
+    const newScore = session.results.reduce((sum, r) => sum + r.score, 0) + result.score;
 
-    const answered = session.results.length;
-    if (answered >= session.challenges.length) {
-      session.status = 'Completed';
+    const mongoSession = await this.connection.startSession();
+    try {
+      await mongoSession.withTransaction(async () => {
+        await this.submissionModel.findByIdAndUpdate(
+          submission._id,
+          { score: result.score, feedback: result.feedback, status: 'scored' },
+          { session: mongoSession },
+        );
+        await this.sessionModel.findByIdAndUpdate(
+          session._id,
+          { $push: { results: resultEntry }, $set: { status: newStatus, score: newScore } },
+          { session: mongoSession },
+        );
+      });
+    } catch (err: unknown) {
+      // Standalone MongoDB does not support transactions — fall back to sequential writes.
+      // On a replica set or Atlas, the transaction above is used for full atomicity.
+      const isStandalone =
+        err instanceof Error &&
+        (err.message.includes('replica set') || (err as { codeName?: string }).codeName === 'IllegalOperation');
+      if (!isStandalone) throw err;
+
+      await this.submissionModel.findByIdAndUpdate(submission._id, {
+        score: result.score, feedback: result.feedback, status: 'scored',
+      });
+      await this.sessionModel.findByIdAndUpdate(session._id, {
+        $push: { results: resultEntry },
+        $set: { status: newStatus, score: newScore },
+      });
+    } finally {
+      await mongoSession.endSession();
     }
-
-    // Recalculate total session score
-    session.score = session.results.reduce((sum, r) => sum + r.score, 0);
-    await session.save();
 
     return result;
   }

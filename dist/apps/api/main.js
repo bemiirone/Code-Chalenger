@@ -757,7 +757,7 @@ exports.SessionsController = SessionsController = tslib_1.__decorate([
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
-var _a, _b, _c, _d;
+var _a, _b, _c, _d, _e;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.SessionsService = void 0;
 const tslib_1 = __webpack_require__(5);
@@ -769,7 +769,8 @@ const submission_schema_1 = __webpack_require__(35);
 const challenges_service_1 = __webpack_require__(28);
 const scoring_service_1 = __webpack_require__(36);
 let SessionsService = class SessionsService {
-    constructor(sessionModel, submissionModel, challengesService, scoringService) {
+    constructor(connection, sessionModel, submissionModel, challengesService, scoringService) {
+        this.connection = connection;
         this.sessionModel = sessionModel;
         this.submissionModel = submissionModel;
         this.challengesService = challengesService;
@@ -799,9 +800,8 @@ let SessionsService = class SessionsService {
         return session;
     }
     async submitAnswer(userId, dto) {
-        const session = await this.sessionModel
-            .findById(dto.sessionId)
-            .exec();
+        // --- Validate (no transaction needed) ---
+        const session = await this.sessionModel.findById(dto.sessionId).exec();
         if (!session)
             throw new common_1.NotFoundException('Session not found');
         if (session.user_id.toString() !== userId)
@@ -812,6 +812,7 @@ let SessionsService = class SessionsService {
         if (alreadyAnswered)
             throw new common_1.BadRequestException('Challenge already submitted in this session');
         const challenge = await this.challengesService.findById(dto.challengeId);
+        // --- Create submission record outside transaction (records the attempt) ---
         const submission = await this.submissionModel.create({
             user_id: new mongoose_2.Types.ObjectId(userId),
             session_id: new mongoose_2.Types.ObjectId(dto.sessionId),
@@ -819,6 +820,7 @@ let SessionsService = class SessionsService {
             userCode: dto.userCode,
             status: 'pending',
         });
+        // --- Score outside transaction (remote call; cannot participate in a DB transaction) ---
         const result = await this.scoringService.scoreNow({
             submissionId: submission._id.toString(),
             challengePrompt: challenge.description,
@@ -828,27 +830,44 @@ let SessionsService = class SessionsService {
             language: challenge.language,
             targetVersion: challenge.version_constraints[0] ?? 'latest',
         });
-        // Persist real score on submission
-        await this.submissionModel.findByIdAndUpdate(submission._id, {
-            score: result.score,
-            feedback: result.feedback,
-            status: 'scored',
-        });
-        // Update session results with real score
-        session.results.push({
+        // --- Persist atomically: submission update + session update must both succeed ---
+        // Uses findByIdAndUpdate (not mutate-and-save) so the callback is safe to retry
+        // on transient write conflicts. Requires MongoDB replica set or Atlas.
+        const resultEntry = {
             challengeId: new mongoose_2.Types.ObjectId(dto.challengeId),
             score: result.score,
             feedback: result.feedback,
             userCode: dto.userCode,
             elapsedSeconds: dto.elapsedSeconds ?? 0,
-        });
-        const answered = session.results.length;
-        if (answered >= session.challenges.length) {
-            session.status = 'Completed';
+        };
+        const answeredCount = session.results.length + 1;
+        const newStatus = answeredCount >= session.challenges.length ? 'Completed' : 'Active';
+        const newScore = session.results.reduce((sum, r) => sum + r.score, 0) + result.score;
+        const mongoSession = await this.connection.startSession();
+        try {
+            await mongoSession.withTransaction(async () => {
+                await this.submissionModel.findByIdAndUpdate(submission._id, { score: result.score, feedback: result.feedback, status: 'scored' }, { session: mongoSession });
+                await this.sessionModel.findByIdAndUpdate(session._id, { $push: { results: resultEntry }, $set: { status: newStatus, score: newScore } }, { session: mongoSession });
+            });
         }
-        // Recalculate total session score
-        session.score = session.results.reduce((sum, r) => sum + r.score, 0);
-        await session.save();
+        catch (err) {
+            // Standalone MongoDB does not support transactions — fall back to sequential writes.
+            // On a replica set or Atlas, the transaction above is used for full atomicity.
+            const isStandalone = err instanceof Error &&
+                (err.message.includes('replica set') || err.codeName === 'IllegalOperation');
+            if (!isStandalone)
+                throw err;
+            await this.submissionModel.findByIdAndUpdate(submission._id, {
+                score: result.score, feedback: result.feedback, status: 'scored',
+            });
+            await this.sessionModel.findByIdAndUpdate(session._id, {
+                $push: { results: resultEntry },
+                $set: { status: newStatus, score: newScore },
+            });
+        }
+        finally {
+            await mongoSession.endSession();
+        }
         return result;
     }
     async getUserSessions(userId) {
@@ -862,9 +881,10 @@ let SessionsService = class SessionsService {
 exports.SessionsService = SessionsService;
 exports.SessionsService = SessionsService = tslib_1.__decorate([
     (0, common_1.Injectable)(),
-    tslib_1.__param(0, (0, mongoose_1.InjectModel)(session_schema_1.SessionEntity.name)),
-    tslib_1.__param(1, (0, mongoose_1.InjectModel)(submission_schema_1.SubmissionEntity.name)),
-    tslib_1.__metadata("design:paramtypes", [typeof (_a = typeof mongoose_2.Model !== "undefined" && mongoose_2.Model) === "function" ? _a : Object, typeof (_b = typeof mongoose_2.Model !== "undefined" && mongoose_2.Model) === "function" ? _b : Object, typeof (_c = typeof challenges_service_1.ChallengesService !== "undefined" && challenges_service_1.ChallengesService) === "function" ? _c : Object, typeof (_d = typeof scoring_service_1.ScoringService !== "undefined" && scoring_service_1.ScoringService) === "function" ? _d : Object])
+    tslib_1.__param(0, (0, mongoose_1.InjectConnection)()),
+    tslib_1.__param(1, (0, mongoose_1.InjectModel)(session_schema_1.SessionEntity.name)),
+    tslib_1.__param(2, (0, mongoose_1.InjectModel)(submission_schema_1.SubmissionEntity.name)),
+    tslib_1.__metadata("design:paramtypes", [typeof (_a = typeof mongoose_2.Connection !== "undefined" && mongoose_2.Connection) === "function" ? _a : Object, typeof (_b = typeof mongoose_2.Model !== "undefined" && mongoose_2.Model) === "function" ? _b : Object, typeof (_c = typeof mongoose_2.Model !== "undefined" && mongoose_2.Model) === "function" ? _c : Object, typeof (_d = typeof challenges_service_1.ChallengesService !== "undefined" && challenges_service_1.ChallengesService) === "function" ? _d : Object, typeof (_e = typeof scoring_service_1.ScoringService !== "undefined" && scoring_service_1.ScoringService) === "function" ? _e : Object])
 ], SessionsService);
 
 

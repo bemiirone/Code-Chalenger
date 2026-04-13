@@ -1,4 +1,4 @@
-import { Component, OnInit, signal, computed } from '@angular/core';
+import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
@@ -82,7 +82,7 @@ const DIFFICULTY_ORDER: Difficulty[] = ['Easy', 'Medium', 'Hard'];
                 <div class="flex gap-3 flex-wrap">
                   @for (cfg of group.configs; track cfg.difficulty) {
                     <button (click)="start(cfg)" [disabled]="loading()"
-                      class="flex flex-col items-start p-5 rounded-lg bg-[#252526] border border-[#3c3c3c] hover:border-[#007acc] text-left transition disabled:opacity-50 min-w-[140px]">
+                      class="flex flex-col items-start p-5 rounded-lg bg-[#252526] border border-[#3c3c3c] hover:border-[#007acc] text-left transition disabled:opacity-50 min-w-35">
                       <span class="text-white font-medium text-sm">{{ cfg.difficulty }}</span>
                       <span class="mt-1 text-xs px-2 py-0.5 rounded" [class]="difficultyClass(cfg.difficulty)">
                         {{ cfg.difficulty === 'Easy' ? '15 min' : cfg.difficulty === 'Medium' ? '20 min' : '30 min' }}
@@ -141,17 +141,15 @@ export class DashboardComponent implements OnInit {
       if (!map.has(cfg.language)) {
         map.set(cfg.language, { language: cfg.language, label: cfg.label, configs: [] });
       }
-      map.get(cfg.language)!.configs.push(cfg);
+      map.get(cfg.language)?.configs.push(cfg);
     }
     return [...map.values()];
   });
 
-  constructor(
-    readonly auth: AuthService,
-    private sessions: SessionService,
-    private challenges: ChallengesService,
-    private router: Router,
-  ) {}
+  readonly auth = inject(AuthService);
+  private readonly sessions = inject(SessionService);
+  private readonly challenges = inject(ChallengesService);
+  private readonly router = inject(Router);
 
   async ngOnInit() {
     const [languages, sessions] = await Promise.allSettled([

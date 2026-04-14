@@ -1,0 +1,75 @@
+<div class="min-h-screen bg-[#1e1e1e] flex flex-col">
+  <!-- Header -->
+  <header class="flex items-center justify-between px-6 py-3 bg-[#252526] border-b border-[#3c3c3c]">
+    <span class="text-white font-semibold">Code Challenger</span>
+    <span class="text-[#9d9d9d] text-sm">
+      Challenge {{ sessions.currentChallengeIndex() + 1 }} of {{ session()?.challenges?.length ?? 5 }}
+    </span>
+    @if (timerEnabled) {
+      <span class="font-mono text-sm px-3 py-1 rounded"
+        [class]="timeRemaining() <= 60 ? 'text-red-400 bg-red-900/30' : 'text-green-400'">
+        {{ timerDisplay() }}
+      </span>
+    }
+    <div class="w-32 bg-[#3c3c3c] rounded-full h-1.5">
+      <div class="bg-[#007acc] h-1.5 rounded-full transition-all"
+        [style.width]="progress() + '%'"></div>
+    </div>
+  </header>
+
+  @if (loading()) {
+    <div class="flex-1 flex items-center justify-center">
+      <div class="text-[#9d9d9d]">Loading session…</div>
+    </div>
+  } @else if (currentChallenge()) {
+    <div class="flex-1 flex divide-x divide-[#3c3c3c] overflow-hidden">
+      <!-- Left: Challenge description -->
+      <aside class="w-2/5 p-6 overflow-y-auto">
+        <h2 class="text-white text-xl font-semibold mb-3">{{ currentChallenge()!.title }}</h2>
+        <div class="text-[#d4d4d4] text-sm whitespace-pre-wrap leading-relaxed">
+          {{ currentChallenge()!.description }}
+        </div>
+      </aside>
+
+      <!-- Right: Editor + submit -->
+      <main class="flex-1 flex flex-col p-4 gap-4">
+        <app-monaco-editor
+          [value]="userCode()"
+          (valueChange)="userCode.set($event)"
+          [language]="editorLanguage()"
+          height="calc(100vh - 220px)"
+        />
+
+        <div class="flex flex-col gap-4">
+          @if (!result()) {
+            <div class="flex items-center gap-4">
+              <button (click)="submit()" [disabled]="submitting()"
+                class="px-6 py-2 bg-[#007acc] hover:bg-[#1a8ad4] text-white rounded font-medium disabled:opacity-50">
+                {{ submitting() ? 'Submitting…' : 'Submit Answer' }}
+              </button>
+              @if (submitError()) {
+                <span class="text-red-400 text-sm">{{ submitError() }}</span>
+              }
+            </div>
+          }
+
+          @if (result()) {
+            <div class="p-4 rounded bg-[#252526] border border-[#3c3c3c]">
+              <div class="flex items-center gap-3 mb-3">
+                <span class="text-white font-semibold text-lg">{{ result()!.score }}/100</span>
+                @if (result()!.score >= 80) { <span class="text-green-400 text-sm font-medium">Excellent!</span> }
+                @else if (result()!.score >= 50) { <span class="text-yellow-400 text-sm font-medium">Good effort</span> }
+                @else { <span class="text-red-400 text-sm font-medium">Needs improvement</span> }
+              </div>
+              <div class="markdown-body" [innerHTML]="result()!.feedback | markdown"></div>
+              <button (click)="next()"
+                class="mt-4 px-4 py-2 bg-[#007acc] hover:bg-[#1a8ad4] text-white text-sm rounded font-medium">
+                {{ isLast() ? 'View Results →' : 'Next Challenge →' }}
+              </button>
+            </div>
+          }
+        </div>
+      </main>
+    </div>
+  }
+</div>

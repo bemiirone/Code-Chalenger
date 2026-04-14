@@ -1,6 +1,6 @@
 # Code Challenger
 
-An AI-driven code challenge platform. Users select a language and difficulty, receive 5 random challenges, write code in a Monaco Editor, and receive LLM-scored feedback with structured Markdown. Initial focus is Angular (v12–v19), but the architecture is polyglot-ready.
+An AI-driven code challenge platform. Users select a language and difficulty, receive up to 5 random challenges, write code in a Monaco Editor, and receive LLM-scored feedback with structured Markdown.
 
 ---
 

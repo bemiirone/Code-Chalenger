@@ -48,20 +48,7 @@ function loadMonaco(): Promise<void> {
   standalone: true,
   imports: [CommonModule],
   selector: 'app-monaco-editor',
-  template: `
-    <div class="relative w-full" [style.height]="height">
-      @if (loading()) {
-        <div class="absolute inset-0 bg-[#1e1e1e] rounded flex items-center justify-center">
-          <div class="flex gap-1">
-            <div class="w-2 h-2 bg-[#007acc] rounded-full animate-bounce" style="animation-delay:0ms"></div>
-            <div class="w-2 h-2 bg-[#007acc] rounded-full animate-bounce" style="animation-delay:150ms"></div>
-            <div class="w-2 h-2 bg-[#007acc] rounded-full animate-bounce" style="animation-delay:300ms"></div>
-          </div>
-        </div>
-      }
-      <div #editorContainer class="w-full h-full" [class.invisible]="loading()"></div>
-    </div>
-  `,
+  templateUrl: './monaco-editor.component.html',
 })
 export class MonacoEditorComponent implements OnInit, OnDestroy, OnChanges {
   @ViewChild('editorContainer', { static: true }) containerRef!: ElementRef<HTMLDivElement>;

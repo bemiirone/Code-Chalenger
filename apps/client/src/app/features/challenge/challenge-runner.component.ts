@@ -39,6 +39,7 @@ export class ChallengeRunnerComponent implements OnInit, OnDestroy {
   editorLanguage = computed(() => {
     const lang = this.currentChallenge()?.language ?? 'typescript';
     if (lang.startsWith('angular')) return 'typescript';
+    if (lang === 'nodejs') return 'typescript';
     if (lang === 'css3') return 'css';
     return lang;
   });

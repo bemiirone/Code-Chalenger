@@ -106,6 +106,11 @@ describe('ChallengeRunnerComponent', () => {
       expect(component.editorLanguage()).toBe('css');
     });
 
+    it('maps nodejs to typescript', () => {
+      component.session.set({ ...mockSession, challenges: [{ ...challenge1, language: 'nodejs' }] } as never);
+      expect(component.editorLanguage()).toBe('typescript');
+    });
+
     it('passes other languages through unchanged', () => {
       component.session.set({ ...mockSession, challenges: [{ ...challenge1, language: 'javascript' }] } as never);
       expect(component.editorLanguage()).toBe('javascript');

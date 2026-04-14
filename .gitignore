@@ -14,3 +14,5 @@ node_modules
 dist/apps/client/browser
 .vscode
 scripts/output/
+scheduled_tasks.lock
+scripts

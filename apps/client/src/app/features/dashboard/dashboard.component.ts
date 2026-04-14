@@ -30,6 +30,7 @@ const LANGUAGE_LABELS: Record<string, string> = {
   'javascript': 'JavaScript (ES6+)',
   'typescript': 'TypeScript',
   'css3': 'CSS3 (Modern)',
+  'nodejs': 'Node.js (Backend)',
 };
 
 const DIFFICULTY_ORDER: Difficulty[] = ['Easy', 'Medium', 'Hard'];

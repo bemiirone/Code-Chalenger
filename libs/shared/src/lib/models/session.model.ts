@@ -23,3 +23,20 @@ export interface Session {
   timestamp: Date;
   createdAt?: string;
 }
+
+export interface ChallengeSummary {
+  _id: string;
+  title: string;
+  language: string;
+  difficulty: string;
+}
+
+export interface SessionSummary {
+  _id: string;
+  user_id: string;
+  challenges: ChallengeSummary[];
+  status: SessionStatus;
+  score: number;
+  results: Pick<SubmissionResult, 'challengeId' | 'score' | 'elapsedSeconds'>[];
+  createdAt?: string;
+}

@@ -80,6 +80,7 @@
     "axios": "^1.6.0",
     "bcrypt": "^6.0.0",
     "bullmq": "^5.73.1",
+    "chart.js": "^4.5.1",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.4",
     "dompurify": "^3.3.3",

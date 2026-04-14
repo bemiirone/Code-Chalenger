@@ -1,7 +1,7 @@
 import { Injectable, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
-import { Session, StartSessionDto, SubmitAnswerDto, ScoringResult } from '@code-challenger/shared';
+import { Session, SessionSummary, StartSessionDto, SubmitAnswerDto, ScoringResult } from '@code-challenger/shared';
 
 const API = '/api';
 
@@ -41,8 +41,8 @@ export class SessionService {
     return session;
   }
 
-  async listSessions(): Promise<Session[]> {
-    return firstValueFrom(this.http.get<Session[]>(`${API}/sessions`));
+  async listSessions(): Promise<SessionSummary[]> {
+    return firstValueFrom(this.http.get<SessionSummary[]>(`${API}/sessions`));
   }
 
   advanceChallenge(): void {

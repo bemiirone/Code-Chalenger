@@ -128,8 +128,9 @@ export class SessionsService {
 
   async getUserSessions(userId: string): Promise<SessionDocument[]> {
     return this.sessionModel
-      .find({ user_id: userId })
+      .find({ user_id: new Types.ObjectId(userId) })
       .select('-results.userCode')
+      .populate('challenges', 'title language difficulty')
       .sort({ createdAt: -1 })
       .exec();
   }

@@ -1,10 +1,22 @@
-import { Component, OnInit, inject, signal, computed } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, signal, computed, effect, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
+import {
+  Chart,
+  LineElement,
+  PointElement,
+  LinearScale,
+  CategoryScale,
+  LineController,
+  Tooltip,
+  Filler,
+} from 'chart.js';
 import { AuthService } from '../../core/services/auth.service';
 import { SessionService } from '../../core/services/session.service';
 import { ChallengesService } from '../../core/services/challenges.service';
-import { Difficulty, Session } from '@code-challenger/shared';
+import { Difficulty, SessionSummary } from '@code-challenger/shared';
+
+Chart.register(LineElement, PointElement, LinearScale, CategoryScale, LineController, Tooltip, Filler);
 
 interface SessionConfig {
   language: string;
@@ -27,14 +39,24 @@ const DIFFICULTY_ORDER: Difficulty[] = ['Easy', 'Medium', 'Hard'];
   imports: [CommonModule, RouterLink],
   templateUrl: './dashboard.component.html',
 })
-export class DashboardComponent implements OnInit {
+export class DashboardComponent implements OnInit, OnDestroy {
+  @ViewChild('scoreChart') chartCanvas!: ElementRef<HTMLCanvasElement>;
+
   configs = signal<SessionConfig[]>([]);
   configsLoading = signal(true);
   loading = signal(false);
   error = signal('');
-  timerEnabled = signal(false);
+  timerEnabled = signal(true);
   challengeCount = signal<1 | 3 | 5>(3);
-  pastSessions = signal<Session[]>([]);
+  pastSessions = signal<SessionSummary[]>([]);
+
+  // Last 10 completed sessions in chronological order for the chart
+  last10Completed = computed(() =>
+    this.pastSessions()
+      .filter((s) => s.status === 'Completed')
+      .slice(0, 10)
+      .reverse(),
+  );
 
   groupedConfigs = computed(() => {
     const map = new Map<string, { language: string; label: string; configs: SessionConfig[] }>();
@@ -51,6 +73,16 @@ export class DashboardComponent implements OnInit {
   private readonly sessions = inject(SessionService);
   private readonly challenges = inject(ChallengesService);
   private readonly router = inject(Router);
+  private chart: Chart | null = null;
+
+  constructor() {
+    effect(() => {
+      const completed = this.last10Completed();
+      if (completed.length > 0) {
+        setTimeout(() => this.renderChart(completed), 0);
+      }
+    });
+  }
 
   async ngOnInit() {
     const [languages, sessions] = await Promise.allSettled([
@@ -80,9 +112,67 @@ export class DashboardComponent implements OnInit {
     this.configsLoading.set(false);
   }
 
+  ngOnDestroy() {
+    this.chart?.destroy();
+  }
+
+  private renderChart(completed: SessionSummary[]) {
+    if (!this.chartCanvas) return;
+    this.chart?.destroy();
+
+    const labels = completed.map((s) => this.formatDate(s.createdAt));
+    const data = completed.map((s) => {
+      const max = s.challenges.length * 100;
+      return max > 0 ? Math.round((s.score / max) * 100) : 0;
+    });
+
+    this.chart = new Chart(this.chartCanvas.nativeElement, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [
+          {
+            data,
+            borderColor: '#007acc',
+            backgroundColor: 'rgba(0, 122, 204, 0.1)',
+            pointBackgroundColor: '#007acc',
+            pointRadius: 5,
+            pointHoverRadius: 7,
+            cubicInterpolationMode: 'monotone',
+            fill: true,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+          tooltip: {
+            callbacks: {
+              label: (ctx) => ` Score: ${ctx.parsed.y}%`,
+            },
+          },
+          legend: { display: false },
+        },
+        scales: {
+          x: {
+            ticks: { color: '#9d9d9d', font: { size: 11 } },
+            grid: { color: '#3c3c3c' },
+          },
+          y: {
+            min: 0,
+            max: 100,
+            ticks: { color: '#9d9d9d', stepSize: 20, callback: (v) => `${v}%` },
+            grid: { color: '#3c3c3c' },
+          },
+        },
+      },
+    });
+  }
+
   formatDate(dateStr?: string): string {
     if (!dateStr) return '';
-    return new Date(dateStr).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+    return new Date(dateStr).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
   }
 
   difficultyClass(d: Difficulty): string {

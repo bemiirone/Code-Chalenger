@@ -39,5 +39,11 @@ export const appRoutes: Route[] = [
     loadComponent: () =>
       import('./features/results/results.component').then((m) => m.ResultsComponent),
   },
+  {
+    path: 'history',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/history/history.component').then((m) => m.HistoryComponent),
+  },
   { path: '**', redirectTo: '/dashboard' },
 ];

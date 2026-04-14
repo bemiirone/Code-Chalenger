@@ -1,0 +1,92 @@
+<div class="min-h-screen bg-[#1e1e1e] p-6">
+
+  <header class="flex items-center justify-between mb-8">
+    <h1 class="text-2xl font-bold text-white">Session History</h1>
+    <a routerLink="/dashboard" class="text-sm text-[#9d9d9d] hover:underline">← Back to Dashboard</a>
+  </header>
+
+  @if (loading()) {
+    <div class="text-[#9d9d9d]">Loading history…</div>
+  } @else if (error()) {
+    <p class="text-red-400 text-sm">{{ error() }}</p>
+  } @else {
+
+    <!-- Stats cards -->
+    <section class="grid grid-cols-3 gap-4 mb-8">
+      <div class="p-5 rounded-lg bg-[#252526] border border-[#3c3c3c] text-center">
+        <div class="text-3xl font-bold text-white">{{ totalCompleted() }}</div>
+        <div class="text-[#9d9d9d] text-sm mt-1">Sessions Completed</div>
+      </div>
+      <div class="p-5 rounded-lg bg-[#252526] border border-[#3c3c3c] text-center">
+        <div class="text-3xl font-bold text-[#007acc]">{{ averageScore() }}</div>
+        <div class="text-[#9d9d9d] text-sm mt-1">Average Score</div>
+      </div>
+      <div class="p-5 rounded-lg bg-[#252526] border border-[#3c3c3c] text-center">
+        <div class="text-3xl font-bold text-green-400">{{ bestScore() }}</div>
+        <div class="text-[#9d9d9d] text-sm mt-1">Best Score</div>
+      </div>
+    </section>
+
+    @if (sessions().length === 0) {
+      <p class="text-[#9d9d9d] text-sm">No sessions yet. Start a challenge from the dashboard!</p>
+    } @else {
+
+      <!-- Two-column layout -->
+      <div class="grid grid-cols-2 gap-6 items-start">
+
+        <!-- Left: Sessions table -->
+        <div class="rounded-lg bg-[#252526] border border-[#3c3c3c] overflow-hidden">
+          <div class="grid grid-cols-[1fr_auto_auto_auto_auto_auto] gap-3 px-4 py-3
+                      border-b border-[#3c3c3c] text-[#9d9d9d] text-xs uppercase tracking-wide">
+            <span>Date / Language</span>
+            <span>Difficulty</span>
+            <span>Status</span>
+            <span>Challenges</span>
+            <span>Score</span>
+            <span></span>
+          </div>
+
+          @for (s of sessions(); track s._id) {
+            <div class="grid grid-cols-[1fr_auto_auto_auto_auto_auto] gap-3 items-center
+                        px-4 py-3 border-b border-[#3c3c3c] last:border-b-0
+                        hover:bg-[#2d2d2d] transition">
+              <div>
+                <div class="text-white text-sm">{{ primaryLanguage(s) }}</div>
+                <div class="text-[#9d9d9d] text-xs mt-0.5">{{ formatDate(s.createdAt) }}</div>
+              </div>
+              <span class="px-2 py-0.5 rounded text-xs font-medium" [class]="difficultyClass(primaryDifficulty(s))">
+                {{ primaryDifficulty(s) }}
+              </span>
+              <span class="px-2 py-0.5 rounded text-xs font-medium"
+                [class]="s.status === 'Completed' ? 'text-green-400 bg-green-900/30' : 'text-yellow-400 bg-yellow-900/30'">
+                {{ s.status }}
+              </span>
+              <span class="text-[#9d9d9d] text-xs text-center">{{ s.results.length }}/{{ s.challenges.length }}</span>
+              <span class="text-white font-semibold text-sm text-center min-w-[2rem]">
+                @if (s.status === 'Completed') { {{ s.score }} pts } @else { — }
+              </span>
+              <span class="text-right">
+                @if (s.status === 'Completed') {
+                  <a [routerLink]="['/results', s._id]" class="text-xs text-[#007acc] hover:underline whitespace-nowrap">View</a>
+                }
+              </span>
+            </div>
+          }
+        </div>
+
+        <!-- Right: SVG line chart -->
+        <div class="rounded-lg bg-[#252526] border border-[#3c3c3c] p-5">
+          <h2 class="text-white font-semibold mb-4">Score Over Time</h2>
+
+          @if (completedSessions().length === 0) {
+            <p class="text-[#9d9d9d] text-sm">Complete a session to see your progress.</p>
+          } @else {
+            <canvas #scoreChart></canvas>
+          }
+        </div>
+
+      </div>
+    }
+  }
+
+</div>

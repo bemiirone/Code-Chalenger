@@ -31,6 +31,12 @@ export class AuthService {
     };
   }
 
+  async getProfile(userId: string): Promise<{ _id: string; email: string; displayName: string }> {
+    const user = await this.userModel.findById(userId).exec();
+    if (!user) throw new UnauthorizedException();
+    return { _id: user._id.toString(), email: user.email, displayName: user.displayName };
+  }
+
   async login(dto: LoginDto): Promise<AuthResponse> {
     const user = await this.userModel.findOne({ email: dto.email }).exec();
     if (!user) {

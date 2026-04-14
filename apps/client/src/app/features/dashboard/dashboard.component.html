@@ -10,68 +10,87 @@
     </div>
   </header>
 
-  <section>
-    <h2 class="text-lg font-semibold text-white mb-4">Start a Challenge Session</h2>
-    <p class="text-[#9d9d9d] text-sm mb-4">Each session contains {{ challengeCount() }} random challenge{{ challengeCount() === 1 ? '' : 's' }}. Your code is scored by AI.</p>
+  <!-- Two-column layout: challenge selector left, score chart right -->
+  <div class="grid grid-cols-2 gap-6 items-start">
 
-    <div class="mb-5">
-      <span class="text-white text-sm font-medium block mb-2">Challenges per session</span>
-      <div class="flex gap-2">
-        @for (n of [1, 3, 5]; track n) {
-          <button (click)="challengeCount.set($any(n))"
-            class="px-4 py-1.5 rounded text-sm font-medium border transition"
-            [class]="challengeCount() === n
-              ? 'bg-[#007acc] border-[#007acc] text-white'
-              : 'bg-transparent border-[#3c3c3c] text-[#9d9d9d] hover:border-[#007acc] hover:text-white'">
-            {{ n }}
-          </button>
-        }
+    <!-- Left: challenge section -->
+    <section>
+      <h2 class="text-lg font-semibold text-white mb-4">Start a Challenge Session</h2>
+      <p class="text-[#9d9d9d] text-sm mb-4">Each session contains {{ challengeCount() }} random challenge{{ challengeCount() === 1 ? '' : 's' }}. Your code is scored by AI.</p>
+
+      <div class="mb-5">
+        <span class="text-white text-sm font-medium block mb-2">Challenges per session</span>
+        <div class="flex gap-2">
+          @for (n of [1, 3, 5]; track n) {
+            <button (click)="challengeCount.set($any(n))"
+              class="px-4 py-1.5 rounded text-sm font-medium border transition"
+              [class]="challengeCount() === n
+                ? 'bg-[#007acc] border-[#007acc] text-white'
+                : 'bg-transparent border-[#3c3c3c] text-[#9d9d9d] hover:border-[#007acc] hover:text-white'">
+              {{ n }}
+            </button>
+          }
+        </div>
       </div>
+
+      <label class="flex items-center gap-3 mb-6 cursor-pointer w-fit">
+        <div class="relative">
+          <input type="checkbox" class="sr-only" [checked]="timerEnabled()"
+            (change)="timerEnabled.set($any($event.target).checked)">
+          <div class="w-10 h-6 rounded-full transition-colors"
+            [class]="timerEnabled() ? 'bg-[#007acc]' : 'bg-[#3c3c3c]'"></div>
+          <div class="absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform"
+            [class]="timerEnabled() ? 'translate-x-4' : 'translate-x-0'"></div>
+        </div>
+        <div>
+          <span class="text-white text-sm font-medium">Enable timer</span>
+          <span class="block text-[#9d9d9d] text-xs">Easy 15 min · Medium 20 min · Hard 30 min</span>
+        </div>
+      </label>
+
+      @if (configsLoading()) {
+        <div class="text-[#9d9d9d] text-sm">Loading sessions…</div>
+      } @else {
+        <div class="space-y-6">
+          @for (group of groupedConfigs(); track group.language) {
+            <div>
+              <h3 class="text-[#e4d7d7] text-xs font-semibold uppercase tracking-widest mb-3">{{ group.label }}</h3>
+              <div class="flex gap-3 flex-wrap">
+                @for (cfg of group.configs; track cfg.difficulty) {
+                  <button (click)="start(cfg)" [disabled]="loading()"
+                    class="flex flex-col items-start p-5 rounded-lg bg-[#252526] border border-[#3c3c3c] hover:border-[#007acc] text-left transition disabled:opacity-50 min-w-35">
+                    <span class="text-white font-medium text-sm">{{ cfg.difficulty }}</span>
+                    <span class="mt-1 text-xs px-2 py-0.5 rounded" [class]="difficultyClass(cfg.difficulty)">
+                      {{ cfg.difficulty === 'Easy' ? '15 min' : cfg.difficulty === 'Medium' ? '20 min' : '30 min' }}
+                    </span>
+                  </button>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      }
+
+      @if (error()) {
+        <p class="mt-4 text-red-400 text-sm">{{ error() }}</p>
+      }
+    </section>
+
+    <!-- Right: last 10 scores chart -->
+    <div class="rounded-lg bg-[#252526] border border-[#3c3c3c] p-5">
+      <h2 class="text-white font-semibold mb-4">
+        {{ auth.currentUser()?.displayName }}'s Last 10 Scores
+      </h2>
+      @if (last10Completed().length === 0) {
+        <p class="text-[#9d9d9d] text-sm">Complete a session to see your scores here.</p>
+      } @else {
+        <canvas #scoreChart></canvas>
+      }
     </div>
 
-    <label class="flex items-center gap-3 mb-6 cursor-pointer w-fit">
-      <div class="relative">
-        <input type="checkbox" class="sr-only" [checked]="timerEnabled()"
-          (change)="timerEnabled.set($any($event.target).checked)">
-        <div class="w-10 h-6 rounded-full transition-colors"
-          [class]="timerEnabled() ? 'bg-[#007acc]' : 'bg-[#3c3c3c]'"></div>
-        <div class="absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform"
-          [class]="timerEnabled() ? 'translate-x-4' : 'translate-x-0'"></div>
-      </div>
-      <div>
-        <span class="text-white text-sm font-medium">Enable timer</span>
-        <span class="block text-[#9d9d9d] text-xs">Easy 15 min · Medium 20 min · Hard 30 min</span>
-      </div>
-    </label>
+  </div>
 
-    @if (configsLoading()) {
-      <div class="text-[#9d9d9d] text-sm">Loading sessions…</div>
-    } @else {
-      <div class="space-y-6">
-        @for (group of groupedConfigs(); track group.language) {
-          <div>
-            <h3 class="text-[#e4d7d7] text-xs font-semibold uppercase tracking-widest mb-3">{{ group.label }}</h3>
-            <div class="flex gap-3 flex-wrap">
-              @for (cfg of group.configs; track cfg.difficulty) {
-                <button (click)="start(cfg)" [disabled]="loading()"
-                  class="flex flex-col items-start p-5 rounded-lg bg-[#252526] border border-[#3c3c3c] hover:border-[#007acc] text-left transition disabled:opacity-50 min-w-35">
-                  <span class="text-white font-medium text-sm">{{ cfg.difficulty }}</span>
-                  <span class="mt-1 text-xs px-2 py-0.5 rounded" [class]="difficultyClass(cfg.difficulty)">
-                    {{ cfg.difficulty === 'Easy' ? '15 min' : cfg.difficulty === 'Medium' ? '20 min' : '30 min' }}
-                  </span>
-                </button>
-              }
-            </div>
-          </div>
-        }
-      </div>
-    }
-
-    @if (error()) {
-      <p class="mt-4 text-red-400 text-sm">{{ error() }}</p>
-    }
-  </section>
-
+  <!-- Past Sessions (full width, below the two columns) -->
   @if (pastSessions().length > 0) {
     <section class="mt-10">
       <h2 class="text-lg font-semibold text-white mb-4">Past Sessions</h2>

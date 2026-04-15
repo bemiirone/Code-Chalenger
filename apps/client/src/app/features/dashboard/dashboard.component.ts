@@ -71,6 +71,14 @@ export class DashboardComponent implements OnInit, OnDestroy {
     return [...map.values()];
   });
 
+  selectedLanguage = signal<string | null>(null);
+
+  selectedGroupConfigs = computed<SessionConfig[]>(() => {
+    const lang = this.selectedLanguage();
+    if (!lang) return [];
+    return this.groupedConfigs().find(g => g.language === lang)?.configs ?? [];
+  });
+
   readonly auth = inject(AuthService);
   private readonly sessions = inject(SessionService);
   private readonly challenges = inject(ChallengesService);
@@ -103,6 +111,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
         }
       }
       this.configs.set(configs);
+      this.selectedLanguage.set(null);
     } else {
       this.error.set('Could not load available sessions.');
     }
@@ -174,7 +183,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   formatDate(dateStr?: string): string {
     if (!dateStr) return '';
-    return new Date(dateStr).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+    return new Date(dateStr).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
   }
 
   difficultyClass(d: Difficulty): string {

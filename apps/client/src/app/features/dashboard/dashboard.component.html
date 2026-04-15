@@ -51,24 +51,43 @@
       @if (configsLoading()) {
         <div class="text-[#9d9d9d] text-sm">Loading sessions…</div>
       } @else {
-        <div class="space-y-6">
-          @for (group of groupedConfigs(); track group.language) {
-            <div>
-              <h3 class="text-[#e4d7d7] text-xs font-semibold uppercase tracking-widest mb-3">{{ group.label }}</h3>
-              <div class="flex gap-3 flex-wrap">
-                @for (cfg of group.configs; track cfg.difficulty) {
-                  <button (click)="start(cfg)" [disabled]="loading()"
-                    class="flex flex-col items-start p-5 rounded-lg bg-[#252526] border border-[#3c3c3c] hover:border-[#007acc] text-left transition disabled:opacity-50 min-w-35">
-                    <span class="text-white font-medium text-sm">{{ cfg.difficulty }}</span>
-                    <span class="mt-1 text-xs px-2 py-0.5 rounded" [class]="difficultyClass(cfg.difficulty)">
-                      {{ cfg.difficulty === 'Easy' ? '15 min' : cfg.difficulty === 'Medium' ? '20 min' : '30 min' }}
-                    </span>
-                  </button>
-                }
-              </div>
-            </div>
-          }
+        <!-- STEP 1: Language grid -->
+        <div>
+          <p class="text-[#9d9d9d] text-xs mb-3 uppercase tracking-widest font-semibold">Select Language</p>
+          <div class="grid grid-cols-3 gap-2">
+            @for (group of groupedConfigs(); track group.language) {
+              <button
+                (click)="selectedLanguage.set(group.language)"
+                [disabled]="loading()"
+                class="flex flex-col items-start px-3 py-2.5 rounded-lg border text-left transition-colors duration-150 disabled:opacity-50"
+                [class]="selectedLanguage() === group.language
+                  ? 'bg-[#007acc]/10 border-[#007acc] text-white'
+                  : 'bg-[#252526] border-[#3c3c3c] text-[#9d9d9d] hover:border-[#007acc] hover:text-white'">
+                <span class="text-xs font-medium leading-tight">{{ group.label }}</span>
+              </button>
+            }
+          </div>
         </div>
+
+        <!-- STEP 2: Difficulty buttons — visible only after a language is selected -->
+        @if (selectedLanguage()) {
+          <div class="mt-5">
+            <p class="text-[#9d9d9d] text-xs mb-3 uppercase tracking-widest font-semibold">Select Difficulty</p>
+            <div class="flex gap-3">
+              @for (cfg of selectedGroupConfigs(); track cfg.difficulty) {
+                <button
+                  (click)="start(cfg)"
+                  [disabled]="loading()"
+                  class="flex flex-col items-start p-4 rounded-lg bg-[#252526] border border-[#3c3c3c] hover:border-[#007acc] text-left transition-colors duration-150 disabled:opacity-50 min-w-[7rem]">
+                  <span class="text-white font-medium text-sm">{{ cfg.difficulty }}</span>
+                  <span class="mt-1 text-xs px-2 py-0.5 rounded" [class]="difficultyClass(cfg.difficulty)">
+                    {{ cfg.difficulty === 'Easy' ? '15 min' : cfg.difficulty === 'Medium' ? '20 min' : '30 min' }}
+                  </span>
+                </button>
+              }
+            </div>
+          </div>
+        }
       }
 
       @if (error()) {

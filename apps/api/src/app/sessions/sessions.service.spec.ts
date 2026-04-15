@@ -176,17 +176,18 @@ describe('SessionsService', () => {
     it('returns sessions sorted by createdAt descending', async () => {
       const sessions = [makeSession(), makeSession()];
       sessionModel.find.mockReturnValue({
-        select: vi.fn().mockReturnValue({ sort: vi.fn().mockReturnValue({ exec: vi.fn().mockResolvedValue(sessions) }) }),
+        select: vi.fn().mockReturnValue({ populate: vi.fn().mockReturnValue({ sort: vi.fn().mockReturnValue({ exec: vi.fn().mockResolvedValue(sessions) }) }) }),
       });
 
       const result = await service.getUserSessions(userId);
 
-      expect(sessionModel.find).toHaveBeenCalledWith({ user_id: userId });
+      expect(sessionModel.find).toHaveBeenCalledWith({ user_id: new Types.ObjectId(userId) });
       expect(result).toEqual(sessions);
     });
 
     it('excludes userCode from results', async () => {
-      const selectMock = vi.fn().mockReturnValue({ sort: vi.fn().mockReturnValue({ exec: vi.fn().mockResolvedValue([]) }) });
+      const populateMock = vi.fn().mockReturnValue({ sort: vi.fn().mockReturnValue({ exec: vi.fn().mockResolvedValue([]) }) });
+      const selectMock = vi.fn().mockReturnValue({ populate: populateMock });
       sessionModel.find.mockReturnValue({ select: selectMock });
 
       await service.getUserSessions(userId);

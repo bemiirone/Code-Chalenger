@@ -68,6 +68,7 @@ export class SessionsService {
     // --- Score outside transaction (remote call; cannot participate in a DB transaction) ---
     const result = await this.scoringService.scoreNow({
       submissionId: submission._id.toString(),
+      challengeId: dto.challengeId,
       challengePrompt: challenge.description,
       starterCode: challenge.starter_code,
       userCode: dto.userCode,
@@ -91,13 +92,21 @@ export class SessionsService {
     const newScore = session.results.reduce((sum, r) => sum + r.score, 0) + result.score;
 
     const mongoSession = await this.connection.startSession();
+    // When scoring is queued (pending), the processor will update the submission later.
+    // We only push a placeholder result entry so the session tracks the submission.
+    const submissionUpdate = result.pending
+      ? null
+      : { score: result.score, feedback: result.feedback, status: 'scored' };
+
     try {
       await mongoSession.withTransaction(async () => {
-        await this.submissionModel.findByIdAndUpdate(
-          submission._id,
-          { score: result.score, feedback: result.feedback, status: 'scored' },
-          { session: mongoSession },
-        );
+        if (submissionUpdate) {
+          await this.submissionModel.findByIdAndUpdate(
+            submission._id,
+            submissionUpdate,
+            { session: mongoSession },
+          );
+        }
         await this.sessionModel.findByIdAndUpdate(
           session._id,
           { $push: { results: resultEntry }, $set: { status: newStatus, score: newScore } },
@@ -112,9 +121,9 @@ export class SessionsService {
         (err.message.includes('replica set') || (err as { codeName?: string }).codeName === 'IllegalOperation');
       if (!isStandalone) throw err;
 
-      await this.submissionModel.findByIdAndUpdate(submission._id, {
-        score: result.score, feedback: result.feedback, status: 'scored',
-      });
+      if (submissionUpdate) {
+        await this.submissionModel.findByIdAndUpdate(submission._id, submissionUpdate);
+      }
       await this.sessionModel.findByIdAndUpdate(session._id, {
         $push: { results: resultEntry },
         $set: { status: newStatus, score: newScore },

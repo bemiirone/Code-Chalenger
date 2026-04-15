@@ -17,4 +17,5 @@ export interface ScoringResult {
   score: number;
   feedback: string;
   jobId: string;
+  pending?: boolean;
 }

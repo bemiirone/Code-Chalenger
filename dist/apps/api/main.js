@@ -33,7 +33,7 @@ const database_module_1 = __webpack_require__(7);
 const auth_module_1 = __webpack_require__(9);
 const challenges_module_1 = __webpack_require__(28);
 const sessions_module_1 = __webpack_require__(32);
-const scoring_module_1 = __webpack_require__(45);
+const scoring_module_1 = __webpack_require__(46);
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -690,7 +690,7 @@ const sessions_service_1 = __webpack_require__(34);
 const session_schema_1 = __webpack_require__(35);
 const submission_schema_1 = __webpack_require__(36);
 const challenges_module_1 = __webpack_require__(28);
-const scoring_module_1 = __webpack_require__(45);
+const scoring_module_1 = __webpack_require__(46);
 let SessionsModule = class SessionsModule {
 };
 exports.SessionsModule = SessionsModule;
@@ -858,6 +858,7 @@ let SessionsService = class SessionsService {
         // --- Score outside transaction (remote call; cannot participate in a DB transaction) ---
         const result = await this.scoringService.scoreNow({
             submissionId: submission._id.toString(),
+            challengeId: dto.challengeId,
             challengePrompt: challenge.description,
             starterCode: challenge.starter_code,
             userCode: dto.userCode,
@@ -879,9 +880,16 @@ let SessionsService = class SessionsService {
         const newStatus = answeredCount >= session.challenges.length ? 'Completed' : 'Active';
         const newScore = session.results.reduce((sum, r) => sum + r.score, 0) + result.score;
         const mongoSession = await this.connection.startSession();
+        // When scoring is queued (pending), the processor will update the submission later.
+        // We only push a placeholder result entry so the session tracks the submission.
+        const submissionUpdate = result.pending
+            ? null
+            : { score: result.score, feedback: result.feedback, status: 'scored' };
         try {
             await mongoSession.withTransaction(async () => {
-                await this.submissionModel.findByIdAndUpdate(submission._id, { score: result.score, feedback: result.feedback, status: 'scored' }, { session: mongoSession });
+                if (submissionUpdate) {
+                    await this.submissionModel.findByIdAndUpdate(submission._id, submissionUpdate, { session: mongoSession });
+                }
                 await this.sessionModel.findByIdAndUpdate(session._id, { $push: { results: resultEntry }, $set: { status: newStatus, score: newScore } }, { session: mongoSession });
             });
         }
@@ -892,9 +900,9 @@ let SessionsService = class SessionsService {
                 (err.message.includes('replica set') || err.codeName === 'IllegalOperation');
             if (!isStandalone)
                 throw err;
-            await this.submissionModel.findByIdAndUpdate(submission._id, {
-                score: result.score, feedback: result.feedback, status: 'scored',
-            });
+            if (submissionUpdate) {
+                await this.submissionModel.findByIdAndUpdate(submission._id, submissionUpdate);
+            }
             await this.sessionModel.findByIdAndUpdate(session._id, {
                 $push: { results: resultEntry },
                 $set: { status: newStatus, score: newScore },
@@ -1049,7 +1057,8 @@ let ScoringService = ScoringService_1 = class ScoringService {
         this.aiFactory = aiFactory;
         this.logger = new common_1.Logger(ScoringService_1.name);
     }
-    /** Score synchronously — awaits the AI response before returning. */
+    /** Score synchronously — awaits the AI response before returning.
+     *  Falls back to the async queue on transient failures (timeouts, network errors). */
     async scoreNow(data) {
         try {
             const provider = this.aiFactory.getProvider();
@@ -1064,8 +1073,8 @@ let ScoringService = ScoringService_1 = class ScoringService {
             return { score: result.score, feedback: result.feedback, jobId: '' };
         }
         catch (err) {
-            this.logger.error('Synchronous scoring failed', err);
-            return { score: 0, feedback: 'Scoring failed. Please try again.', jobId: '' };
+            this.logger.warn('Synchronous scoring failed, falling back to queue', err);
+            return this.enqueueScoring(data);
         }
     }
     /** Enqueue for async processing (kept for future background use). */
@@ -1078,6 +1087,7 @@ let ScoringService = ScoringService_1 = class ScoringService {
             jobId: job.id ?? '',
             score: 0,
             feedback: 'Your code is being scored. Check back shortly.',
+            pending: true,
         };
     }
 };
@@ -1116,7 +1126,7 @@ exports.SCORING_QUEUE = 'scoring';
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
-var _a, _b, _c;
+var _a, _b, _c, _d;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.AiProviderFactory = void 0;
 const tslib_1 = __webpack_require__(5);
@@ -1124,23 +1134,27 @@ const common_1 = __webpack_require__(1);
 const config_1 = __webpack_require__(6);
 const openai_provider_1 = __webpack_require__(42);
 const anthropic_provider_1 = __webpack_require__(44);
+const gemini_provider_1 = __webpack_require__(45);
 let AiProviderFactory = class AiProviderFactory {
-    constructor(config, openAi, anthropic) {
+    constructor(config, openAi, anthropic, gemini) {
         this.config = config;
         this.openAi = openAi;
         this.anthropic = anthropic;
+        this.gemini = gemini;
     }
     getProvider() {
         const name = this.config.get('AI_PROVIDER', 'openai');
         if (name === 'anthropic')
             return this.anthropic;
+        if (name === 'gemini')
+            return this.gemini;
         return this.openAi;
     }
 };
 exports.AiProviderFactory = AiProviderFactory;
 exports.AiProviderFactory = AiProviderFactory = tslib_1.__decorate([
     (0, common_1.Injectable)(),
-    tslib_1.__metadata("design:paramtypes", [typeof (_a = typeof config_1.ConfigService !== "undefined" && config_1.ConfigService) === "function" ? _a : Object, typeof (_b = typeof openai_provider_1.OpenAiProvider !== "undefined" && openai_provider_1.OpenAiProvider) === "function" ? _b : Object, typeof (_c = typeof anthropic_provider_1.AnthropicProvider !== "undefined" && anthropic_provider_1.AnthropicProvider) === "function" ? _c : Object])
+    tslib_1.__metadata("design:paramtypes", [typeof (_a = typeof config_1.ConfigService !== "undefined" && config_1.ConfigService) === "function" ? _a : Object, typeof (_b = typeof openai_provider_1.OpenAiProvider !== "undefined" && openai_provider_1.OpenAiProvider) === "function" ? _b : Object, typeof (_c = typeof anthropic_provider_1.AnthropicProvider !== "undefined" && anthropic_provider_1.AnthropicProvider) === "function" ? _c : Object, typeof (_d = typeof gemini_provider_1.GeminiProvider !== "undefined" && gemini_provider_1.GeminiProvider) === "function" ? _d : Object])
 ], AiProviderFactory);
 
 
@@ -1336,6 +1350,64 @@ exports.AnthropicProvider = AnthropicProvider = AnthropicProvider_1 = tslib_1.__
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
+var GeminiProvider_1;
+var _a;
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.GeminiProvider = void 0;
+const tslib_1 = __webpack_require__(5);
+const common_1 = __webpack_require__(1);
+const config_1 = __webpack_require__(6);
+const scoring_prompts_1 = __webpack_require__(43);
+let GeminiProvider = GeminiProvider_1 = class GeminiProvider {
+    constructor(config) {
+        this.config = config;
+        this.logger = new common_1.Logger(GeminiProvider_1.name);
+    }
+    async score(request) {
+        const apiKey = this.config.getOrThrow('GEMINI_API_KEY');
+        const model = this.config.get('GEMINI_MODEL', 'gemini-2.0-flash');
+        const systemPrompt = (0, scoring_prompts_1.buildScoringSystemPrompt)(request.language, request.targetVersion);
+        const userPrompt = (0, scoring_prompts_1.buildScoringUserPrompt)(request);
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                systemInstruction: { parts: [{ text: systemPrompt }] },
+                contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
+                generationConfig: {
+                    temperature: 0.2,
+                    maxOutputTokens: 4096,
+                    responseMimeType: 'application/json',
+                },
+            }),
+        });
+        if (!response.ok) {
+            const err = await response.text();
+            this.logger.error(`Gemini error: ${err}`);
+            throw new Error(`Gemini API error: ${response.status}`);
+        }
+        const data = (await response.json());
+        const text = data.candidates[0].content.parts[0].text;
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        if (!jsonMatch)
+            throw new Error('Could not parse Gemini scoring response');
+        const parsed = JSON.parse(jsonMatch[0]);
+        return { score: Math.min(100, Math.max(0, parsed.score)), feedback: parsed.feedback };
+    }
+};
+exports.GeminiProvider = GeminiProvider;
+exports.GeminiProvider = GeminiProvider = GeminiProvider_1 = tslib_1.__decorate([
+    (0, common_1.Injectable)(),
+    tslib_1.__metadata("design:paramtypes", [typeof (_a = typeof config_1.ConfigService !== "undefined" && config_1.ConfigService) === "function" ? _a : Object])
+], GeminiProvider);
+
+
+/***/ }),
+/* 46 */
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.ScoringModule = void 0;
 const tslib_1 = __webpack_require__(5);
@@ -1344,10 +1416,11 @@ const bullmq_1 = __webpack_require__(38);
 const mongoose_1 = __webpack_require__(8);
 const config_1 = __webpack_require__(6);
 const scoring_service_1 = __webpack_require__(37);
-const scoring_processor_1 = __webpack_require__(46);
+const scoring_processor_1 = __webpack_require__(47);
 const ai_provider_factory_1 = __webpack_require__(41);
 const openai_provider_1 = __webpack_require__(42);
 const anthropic_provider_1 = __webpack_require__(44);
+const gemini_provider_1 = __webpack_require__(45);
 const submission_schema_1 = __webpack_require__(36);
 const session_schema_1 = __webpack_require__(35);
 const scoring_constants_1 = __webpack_require__(40);
@@ -1372,14 +1445,14 @@ exports.ScoringModule = ScoringModule = tslib_1.__decorate([
                 { name: session_schema_1.SessionEntity.name, schema: session_schema_1.SessionSchema },
             ]),
         ],
-        providers: [scoring_service_1.ScoringService, scoring_processor_1.ScoringProcessor, ai_provider_factory_1.AiProviderFactory, openai_provider_1.OpenAiProvider, anthropic_provider_1.AnthropicProvider],
+        providers: [scoring_service_1.ScoringService, scoring_processor_1.ScoringProcessor, ai_provider_factory_1.AiProviderFactory, openai_provider_1.OpenAiProvider, anthropic_provider_1.AnthropicProvider, gemini_provider_1.GeminiProvider],
         exports: [scoring_service_1.ScoringService],
     })
 ], ScoringModule);
 
 
 /***/ }),
-/* 46 */
+/* 47 */
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
@@ -1416,7 +1489,7 @@ let ScoringProcessor = ScoringProcessor_1 = class ScoringProcessor extends bullm
                 status: 'scored',
             });
             // Update the matching result in the parent session
-            await this.sessionModel.updateOne({ 'results.challengeId': new mongoose_2.Types.ObjectId(job.data.submissionId) }, {
+            await this.sessionModel.updateOne({ 'results.challengeId': new mongoose_2.Types.ObjectId(job.data.challengeId) }, {
                 $set: {
                     'results.$.score': result.score,
                     'results.$.feedback': result.feedback,

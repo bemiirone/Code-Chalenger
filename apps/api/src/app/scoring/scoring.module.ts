@@ -7,6 +7,7 @@ import { ScoringProcessor } from './scoring.processor';
 import { AiProviderFactory } from './providers/ai-provider.factory';
 import { OpenAiProvider } from './providers/openai.provider';
 import { AnthropicProvider } from './providers/anthropic.provider';
+import { GeminiProvider } from './providers/gemini.provider';
 import { SubmissionEntity, SubmissionSchema } from '../database/schemas/submission.schema';
 import { SessionEntity, SessionSchema } from '../database/schemas/session.schema';
 import { SCORING_QUEUE } from './scoring.constants';
@@ -28,7 +29,7 @@ import { SCORING_QUEUE } from './scoring.constants';
       { name: SessionEntity.name, schema: SessionSchema },
     ]),
   ],
-  providers: [ScoringService, ScoringProcessor, AiProviderFactory, OpenAiProvider, AnthropicProvider],
+  providers: [ScoringService, ScoringProcessor, AiProviderFactory, OpenAiProvider, AnthropicProvider, GeminiProvider],
   exports: [ScoringService],
 })
 export class ScoringModule {}

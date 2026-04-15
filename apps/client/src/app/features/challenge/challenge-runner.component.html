@@ -55,13 +55,20 @@
 
           @if (result()) {
             <div class="p-4 rounded bg-[#252526] border border-[#3c3c3c]">
-              <div class="flex items-center gap-3 mb-3">
-                <span class="text-white font-semibold text-lg">{{ result()!.score }}/100</span>
-                @if (result()!.score >= 80) { <span class="text-green-400 text-sm font-medium">Excellent!</span> }
-                @else if (result()!.score >= 50) { <span class="text-yellow-400 text-sm font-medium">Good effort</span> }
-                @else { <span class="text-red-400 text-sm font-medium">Needs improvement</span> }
-              </div>
-              <div class="markdown-body" [innerHTML]="result()!.feedback | markdown"></div>
+              @if (result()!.pending) {
+                <div class="flex items-center gap-3 mb-3">
+                  <span class="text-yellow-400 font-semibold text-lg">Scoring in progress…</span>
+                </div>
+                <p class="text-[#9d9d9d] text-sm">Your submission has been queued. Scores will appear in your session history once complete.</p>
+              } @else {
+                <div class="flex items-center gap-3 mb-3">
+                  <span class="text-white font-semibold text-lg">{{ result()!.score }}/100</span>
+                  @if (result()!.score >= 80) { <span class="text-green-400 text-sm font-medium">Excellent!</span> }
+                  @else if (result()!.score >= 50) { <span class="text-yellow-400 text-sm font-medium">Good effort</span> }
+                  @else { <span class="text-red-400 text-sm font-medium">Needs improvement</span> }
+                </div>
+                <div class="markdown-body" [innerHTML]="result()!.feedback | markdown"></div>
+              }
               <button (click)="next()"
                 class="mt-4 px-4 py-2 bg-[#007acc] hover:bg-[#1a8ad4] text-white text-sm rounded font-medium">
                 {{ isLast() ? 'View Results →' : 'Next Challenge →' }}

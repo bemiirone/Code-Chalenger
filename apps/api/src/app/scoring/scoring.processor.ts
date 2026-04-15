@@ -37,7 +37,7 @@ export class ScoringProcessor extends WorkerHost {
 
       // Update the matching result in the parent session
       await this.sessionModel.updateOne(
-        { 'results.challengeId': new Types.ObjectId(job.data.submissionId) },
+        { 'results.challengeId': new Types.ObjectId(job.data.challengeId) },
         {
           $set: {
             'results.$.score': result.score,

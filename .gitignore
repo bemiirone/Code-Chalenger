@@ -16,3 +16,4 @@ dist/apps/client/browser
 scripts/output/
 scheduled_tasks.lock
 scripts
+TECHNICAL_SUMMARY.md

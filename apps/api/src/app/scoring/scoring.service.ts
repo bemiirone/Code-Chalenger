@@ -7,6 +7,7 @@ import { AiProviderFactory } from './providers/ai-provider.factory';
 
 export interface ScoringJobData {
   submissionId: string;
+  challengeId: string;
   challengePrompt: string;
   starterCode: string;
   userCode: string;
@@ -24,7 +25,8 @@ export class ScoringService {
     private aiFactory: AiProviderFactory,
   ) {}
 
-  /** Score synchronously — awaits the AI response before returning. */
+  /** Score synchronously — awaits the AI response before returning.
+   *  Falls back to the async queue on transient failures (timeouts, network errors). */
   async scoreNow(data: ScoringJobData): Promise<ScoringResult> {
     try {
       const provider = this.aiFactory.getProvider();
@@ -38,8 +40,8 @@ export class ScoringService {
       });
       return { score: result.score, feedback: result.feedback, jobId: '' };
     } catch (err) {
-      this.logger.error('Synchronous scoring failed', err);
-      return { score: 0, feedback: 'Scoring failed. Please try again.', jobId: '' };
+      this.logger.warn('Synchronous scoring failed, falling back to queue', err);
+      return this.enqueueScoring(data);
     }
   }
 
@@ -53,6 +55,7 @@ export class ScoringService {
       jobId: job.id ?? '',
       score: 0,
       feedback: 'Your code is being scored. Check back shortly.',
+      pending: true,
     };
   }
 }

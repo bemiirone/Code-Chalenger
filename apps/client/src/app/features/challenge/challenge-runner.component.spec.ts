@@ -111,6 +111,11 @@ describe('ChallengeRunnerComponent', () => {
       expect(component.editorLanguage()).toBe('typescript');
     });
 
+    it('maps nestjs to typescript', () => {
+      component.session.set({ ...mockSession, challenges: [{ ...challenge1, language: 'nestjs' }] } as never);
+      expect(component.editorLanguage()).toBe('typescript');
+    });
+
     it('passes other languages through unchanged', () => {
       component.session.set({ ...mockSession, challenges: [{ ...challenge1, language: 'javascript' }] } as never);
       expect(component.editorLanguage()).toBe('javascript');

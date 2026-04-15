@@ -31,6 +31,7 @@ const LANGUAGE_LABELS: Record<string, string> = {
   'typescript': 'TypeScript',
   'css3': 'CSS3 (Modern)',
   'nodejs': 'Node.js (Backend)',
+  'nestjs': 'NestJS (Server)',
 };
 
 const DIFFICULTY_ORDER: Difficulty[] = ['Easy', 'Medium', 'Hard'];

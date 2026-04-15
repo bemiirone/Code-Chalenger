@@ -90,28 +90,4 @@
 
   </div>
 
-  <!-- Past Sessions (full width, below the two columns) -->
-  @if (pastSessions().length > 0) {
-    <section class="mt-10">
-      <h2 class="text-lg font-semibold text-white mb-4">Past Sessions</h2>
-      <div class="space-y-2">
-        @for (s of pastSessions(); track s._id) {
-          <a [routerLink]="['/results', s._id]"
-            class="flex items-center justify-between px-5 py-3 rounded-lg bg-[#252526] border border-[#3c3c3c] hover:border-[#007acc] transition">
-            <div class="flex items-center gap-3">
-              <span class="text-[#9d9d9d] text-sm">{{ formatDate(s.createdAt) }}</span>
-              <span class="text-xs px-2 py-0.5 rounded font-medium"
-                [class]="s.status === 'Completed' ? 'text-green-400 bg-green-900/30' : 'text-yellow-400 bg-yellow-900/30'">
-                {{ s.status }}
-              </span>
-            </div>
-            <div class="flex items-center gap-4">
-              <span class="text-[#9d9d9d] text-sm">{{ s.results.length }}/{{ s.challenges.length }} answered</span>
-              <span class="text-white font-semibold text-sm">{{ s.score }} pts</span>
-            </div>
-          </a>
-        }
-      </div>
-    </section>
-  }
 </div>

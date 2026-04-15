@@ -56,7 +56,8 @@ export class ScoringService {
           }
         }
       } else {
-        this.logger.warn('Synchronous scoring failed, falling back to queue', err);
+        this.logger.warn('Synchronous scoring failed', err);
+        return { score: 0, feedback: 'Scoring failed. Please try again.', jobId: '' };
       }
       return this.enqueueScoring(data);
     }

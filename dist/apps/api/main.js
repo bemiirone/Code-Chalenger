@@ -1051,6 +1051,7 @@ const bullmq_1 = __webpack_require__(38);
 const bullmq_2 = __webpack_require__(39);
 const scoring_constants_1 = __webpack_require__(40);
 const ai_provider_factory_1 = __webpack_require__(41);
+const provider_errors_1 = __webpack_require__(45);
 let ScoringService = ScoringService_1 = class ScoringService {
     constructor(scoringQueue, aiFactory) {
         this.scoringQueue = scoringQueue;
@@ -1058,22 +1059,39 @@ let ScoringService = ScoringService_1 = class ScoringService {
         this.logger = new common_1.Logger(ScoringService_1.name);
     }
     /** Score synchronously — awaits the AI response before returning.
-     *  Falls back to the async queue on transient failures (timeouts, network errors). */
+     *  On resource exhaustion (quota/rate limit), tries the fallback provider before queuing. */
     async scoreNow(data) {
+        const scoreRequest = {
+            challengePrompt: data.challengePrompt,
+            starterCode: data.starterCode,
+            userCode: data.userCode,
+            aiScoringPrompt: data.aiScoringPrompt,
+            language: data.language,
+            targetVersion: data.targetVersion,
+        };
         try {
             const provider = this.aiFactory.getProvider();
-            const result = await provider.score({
-                challengePrompt: data.challengePrompt,
-                starterCode: data.starterCode,
-                userCode: data.userCode,
-                aiScoringPrompt: data.aiScoringPrompt,
-                language: data.language,
-                targetVersion: data.targetVersion,
-            });
+            const result = await provider.score(scoreRequest);
             return { score: result.score, feedback: result.feedback, jobId: '' };
         }
         catch (err) {
-            this.logger.warn('Synchronous scoring failed, falling back to queue', err);
+            if (err instanceof provider_errors_1.ProviderResourceExhaustedError) {
+                this.logger.warn(`${err.providerName} resource exhausted (HTTP ${err.status}), trying fallback provider`);
+                const fallback = this.aiFactory.getFallbackProvider();
+                if (fallback) {
+                    try {
+                        const result = await fallback.score(scoreRequest);
+                        const note = `> **Note:** ${err.providerName} was temporarily unavailable (quota/resource limit). This submission was scored by the fallback provider.\n\n`;
+                        return { score: result.score, feedback: note + result.feedback, jobId: '' };
+                    }
+                    catch (fallbackErr) {
+                        this.logger.warn('Fallback provider also failed, falling back to queue', fallbackErr);
+                    }
+                }
+            }
+            else {
+                this.logger.warn('Synchronous scoring failed, falling back to queue', err);
+            }
             return this.enqueueScoring(data);
         }
     }
@@ -1126,35 +1144,39 @@ exports.SCORING_QUEUE = 'scoring';
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
-var _a, _b, _c, _d;
+var _a, _b, _c;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.AiProviderFactory = void 0;
 const tslib_1 = __webpack_require__(5);
 const common_1 = __webpack_require__(1);
 const config_1 = __webpack_require__(6);
-const openai_provider_1 = __webpack_require__(42);
-const anthropic_provider_1 = __webpack_require__(44);
-const gemini_provider_1 = __webpack_require__(45);
+const anthropic_provider_1 = __webpack_require__(42);
+const gemini_provider_1 = __webpack_require__(44);
 let AiProviderFactory = class AiProviderFactory {
-    constructor(config, openAi, anthropic, gemini) {
+    constructor(config, anthropic, gemini) {
         this.config = config;
-        this.openAi = openAi;
         this.anthropic = anthropic;
         this.gemini = gemini;
     }
     getProvider() {
-        const name = this.config.get('AI_PROVIDER', 'openai');
+        const name = this.config.get('AI_PROVIDER', 'gemini');
         if (name === 'anthropic')
             return this.anthropic;
+        return this.gemini;
+    }
+    getFallbackProvider() {
+        const name = this.config.get('AI_PROVIDER', 'openai');
         if (name === 'gemini')
+            return this.anthropic;
+        if (name === 'anthropic')
             return this.gemini;
-        return this.openAi;
+        return null;
     }
 };
 exports.AiProviderFactory = AiProviderFactory;
 exports.AiProviderFactory = AiProviderFactory = tslib_1.__decorate([
     (0, common_1.Injectable)(),
-    tslib_1.__metadata("design:paramtypes", [typeof (_a = typeof config_1.ConfigService !== "undefined" && config_1.ConfigService) === "function" ? _a : Object, typeof (_b = typeof openai_provider_1.OpenAiProvider !== "undefined" && openai_provider_1.OpenAiProvider) === "function" ? _b : Object, typeof (_c = typeof anthropic_provider_1.AnthropicProvider !== "undefined" && anthropic_provider_1.AnthropicProvider) === "function" ? _c : Object, typeof (_d = typeof gemini_provider_1.GeminiProvider !== "undefined" && gemini_provider_1.GeminiProvider) === "function" ? _d : Object])
+    tslib_1.__metadata("design:paramtypes", [typeof (_a = typeof config_1.ConfigService !== "undefined" && config_1.ConfigService) === "function" ? _a : Object, typeof (_b = typeof anthropic_provider_1.AnthropicProvider !== "undefined" && anthropic_provider_1.AnthropicProvider) === "function" ? _b : Object, typeof (_c = typeof gemini_provider_1.GeminiProvider !== "undefined" && gemini_provider_1.GeminiProvider) === "function" ? _c : Object])
 ], AiProviderFactory);
 
 
@@ -1163,56 +1185,57 @@ exports.AiProviderFactory = AiProviderFactory = tslib_1.__decorate([
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
-var OpenAiProvider_1;
+var AnthropicProvider_1;
 var _a;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.OpenAiProvider = void 0;
+exports.AnthropicProvider = void 0;
 const tslib_1 = __webpack_require__(5);
 const common_1 = __webpack_require__(1);
 const config_1 = __webpack_require__(6);
 const scoring_prompts_1 = __webpack_require__(43);
-let OpenAiProvider = OpenAiProvider_1 = class OpenAiProvider {
+let AnthropicProvider = AnthropicProvider_1 = class AnthropicProvider {
     constructor(config) {
         this.config = config;
-        this.logger = new common_1.Logger(OpenAiProvider_1.name);
+        this.logger = new common_1.Logger(AnthropicProvider_1.name);
     }
     async score(request) {
-        const apiKey = this.config.getOrThrow('OPENAI_API_KEY');
+        const apiKey = this.config.getOrThrow('ANTHROPIC_API_KEY');
         const systemPrompt = (0, scoring_prompts_1.buildScoringSystemPrompt)(request.language, request.targetVersion);
         const userPrompt = (0, scoring_prompts_1.buildScoringUserPrompt)(request);
-        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        const response = await fetch('https://api.anthropic.com/v1/messages', {
             method: 'POST',
             headers: {
-                Authorization: `Bearer ${apiKey}`,
+                'x-api-key': apiKey,
+                'anthropic-version': '2023-06-01',
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                model: 'gpt-4o-mini',
-                response_format: { type: 'json_object' },
-                messages: [
-                    { role: 'system', content: systemPrompt },
-                    { role: 'user', content: userPrompt },
-                ],
-                temperature: 0.2,
+                model: 'claude-haiku-4-5-20251001',
+                system: systemPrompt,
+                messages: [{ role: 'user', content: userPrompt }],
                 max_tokens: 1024,
+                temperature: 0.2,
             }),
         });
         if (!response.ok) {
             const err = await response.text();
-            this.logger.error(`OpenAI error: ${err}`);
-            throw new Error(`OpenAI API error: ${response.status}`);
+            this.logger.error(`Anthropic error: ${err}`);
+            throw new Error(`Anthropic API error: ${response.status}`);
         }
         const data = (await response.json());
-        const content = data.choices[0].message.content;
-        const parsed = JSON.parse(content);
+        const text = data.content[0].text;
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        if (!jsonMatch)
+            throw new Error('Could not parse Anthropic scoring response');
+        const parsed = JSON.parse(jsonMatch[0]);
         return { score: Math.min(100, Math.max(0, parsed.score)), feedback: parsed.feedback };
     }
 };
-exports.OpenAiProvider = OpenAiProvider;
-exports.OpenAiProvider = OpenAiProvider = OpenAiProvider_1 = tslib_1.__decorate([
+exports.AnthropicProvider = AnthropicProvider;
+exports.AnthropicProvider = AnthropicProvider = AnthropicProvider_1 = tslib_1.__decorate([
     (0, common_1.Injectable)(),
     tslib_1.__metadata("design:paramtypes", [typeof (_a = typeof config_1.ConfigService !== "undefined" && config_1.ConfigService) === "function" ? _a : Object])
-], OpenAiProvider);
+], AnthropicProvider);
 
 
 /***/ }),
@@ -1292,64 +1315,6 @@ Grade the User Code according to the criteria above and respond with JSON.`;
 /***/ ((__unused_webpack_module, exports, __webpack_require__) => {
 
 
-var AnthropicProvider_1;
-var _a;
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.AnthropicProvider = void 0;
-const tslib_1 = __webpack_require__(5);
-const common_1 = __webpack_require__(1);
-const config_1 = __webpack_require__(6);
-const scoring_prompts_1 = __webpack_require__(43);
-let AnthropicProvider = AnthropicProvider_1 = class AnthropicProvider {
-    constructor(config) {
-        this.config = config;
-        this.logger = new common_1.Logger(AnthropicProvider_1.name);
-    }
-    async score(request) {
-        const apiKey = this.config.getOrThrow('ANTHROPIC_API_KEY');
-        const systemPrompt = (0, scoring_prompts_1.buildScoringSystemPrompt)(request.language, request.targetVersion);
-        const userPrompt = (0, scoring_prompts_1.buildScoringUserPrompt)(request);
-        const response = await fetch('https://api.anthropic.com/v1/messages', {
-            method: 'POST',
-            headers: {
-                'x-api-key': apiKey,
-                'anthropic-version': '2023-06-01',
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                model: 'claude-haiku-4-5-20251001',
-                system: systemPrompt,
-                messages: [{ role: 'user', content: userPrompt }],
-                max_tokens: 1024,
-                temperature: 0.2,
-            }),
-        });
-        if (!response.ok) {
-            const err = await response.text();
-            this.logger.error(`Anthropic error: ${err}`);
-            throw new Error(`Anthropic API error: ${response.status}`);
-        }
-        const data = (await response.json());
-        const text = data.content[0].text;
-        const jsonMatch = text.match(/\{[\s\S]*\}/);
-        if (!jsonMatch)
-            throw new Error('Could not parse Anthropic scoring response');
-        const parsed = JSON.parse(jsonMatch[0]);
-        return { score: Math.min(100, Math.max(0, parsed.score)), feedback: parsed.feedback };
-    }
-};
-exports.AnthropicProvider = AnthropicProvider;
-exports.AnthropicProvider = AnthropicProvider = AnthropicProvider_1 = tslib_1.__decorate([
-    (0, common_1.Injectable)(),
-    tslib_1.__metadata("design:paramtypes", [typeof (_a = typeof config_1.ConfigService !== "undefined" && config_1.ConfigService) === "function" ? _a : Object])
-], AnthropicProvider);
-
-
-/***/ }),
-/* 45 */
-/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
-
-
 var GeminiProvider_1;
 var _a;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
@@ -1358,6 +1323,7 @@ const tslib_1 = __webpack_require__(5);
 const common_1 = __webpack_require__(1);
 const config_1 = __webpack_require__(6);
 const scoring_prompts_1 = __webpack_require__(43);
+const provider_errors_1 = __webpack_require__(45);
 let GeminiProvider = GeminiProvider_1 = class GeminiProvider {
     constructor(config) {
         this.config = config;
@@ -1379,20 +1345,35 @@ let GeminiProvider = GeminiProvider_1 = class GeminiProvider {
                     temperature: 0.2,
                     maxOutputTokens: 4096,
                     responseMimeType: 'application/json',
+                    responseSchema: {
+                        type: 'object',
+                        properties: {
+                            score: { type: 'integer' },
+                            feedback: { type: 'string' },
+                        },
+                        required: ['score', 'feedback'],
+                    },
                 },
             }),
         });
         if (!response.ok) {
             const err = await response.text();
             this.logger.error(`Gemini error: ${err}`);
+            if (response.status === 429 || response.status === 503) {
+                throw new provider_errors_1.ProviderResourceExhaustedError('Gemini', response.status, `Gemini API error: ${response.status}`);
+            }
             throw new Error(`Gemini API error: ${response.status}`);
         }
         const data = (await response.json());
         const text = data.candidates[0].content.parts[0].text;
-        const jsonMatch = text.match(/\{[\s\S]*\}/);
-        if (!jsonMatch)
+        let parsed;
+        try {
+            parsed = JSON.parse(text);
+        }
+        catch {
+            this.logger.error(`Gemini JSON parse failed. Raw response: ${text}`);
             throw new Error('Could not parse Gemini scoring response');
-        const parsed = JSON.parse(jsonMatch[0]);
+        }
         return { score: Math.min(100, Math.max(0, parsed.score)), feedback: parsed.feedback };
     }
 };
@@ -1401,6 +1382,24 @@ exports.GeminiProvider = GeminiProvider = GeminiProvider_1 = tslib_1.__decorate(
     (0, common_1.Injectable)(),
     tslib_1.__metadata("design:paramtypes", [typeof (_a = typeof config_1.ConfigService !== "undefined" && config_1.ConfigService) === "function" ? _a : Object])
 ], GeminiProvider);
+
+
+/***/ }),
+/* 45 */
+/***/ ((__unused_webpack_module, exports) => {
+
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.ProviderResourceExhaustedError = void 0;
+class ProviderResourceExhaustedError extends Error {
+    constructor(providerName, status, message) {
+        super(message);
+        this.providerName = providerName;
+        this.status = status;
+        this.name = 'ProviderResourceExhaustedError';
+    }
+}
+exports.ProviderResourceExhaustedError = ProviderResourceExhaustedError;
 
 
 /***/ }),
@@ -1418,9 +1417,8 @@ const config_1 = __webpack_require__(6);
 const scoring_service_1 = __webpack_require__(37);
 const scoring_processor_1 = __webpack_require__(47);
 const ai_provider_factory_1 = __webpack_require__(41);
-const openai_provider_1 = __webpack_require__(42);
-const anthropic_provider_1 = __webpack_require__(44);
-const gemini_provider_1 = __webpack_require__(45);
+const anthropic_provider_1 = __webpack_require__(42);
+const gemini_provider_1 = __webpack_require__(44);
 const submission_schema_1 = __webpack_require__(36);
 const session_schema_1 = __webpack_require__(35);
 const scoring_constants_1 = __webpack_require__(40);
@@ -1445,7 +1443,7 @@ exports.ScoringModule = ScoringModule = tslib_1.__decorate([
                 { name: session_schema_1.SessionEntity.name, schema: session_schema_1.SessionSchema },
             ]),
         ],
-        providers: [scoring_service_1.ScoringService, scoring_processor_1.ScoringProcessor, ai_provider_factory_1.AiProviderFactory, openai_provider_1.OpenAiProvider, anthropic_provider_1.AnthropicProvider, gemini_provider_1.GeminiProvider],
+        providers: [scoring_service_1.ScoringService, scoring_processor_1.ScoringProcessor, ai_provider_factory_1.AiProviderFactory, anthropic_provider_1.AnthropicProvider, gemini_provider_1.GeminiProvider],
         exports: [scoring_service_1.ScoringService],
     })
 ], ScoringModule);

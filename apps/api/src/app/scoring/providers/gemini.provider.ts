@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AiProvider, ScoreRequest, ScoreResponse } from './ai-provider.interface';
 import { buildScoringSystemPrompt, buildScoringUserPrompt } from '../scoring.prompts';
+import { ProviderResourceExhaustedError } from './provider-errors';
 
 @Injectable()
 export class GeminiProvider implements AiProvider {
@@ -27,6 +28,14 @@ export class GeminiProvider implements AiProvider {
           temperature: 0.2,
           maxOutputTokens: 4096,
           responseMimeType: 'application/json',
+          responseSchema: {
+            type: 'object',
+            properties: {
+              score: { type: 'integer' },
+              feedback: { type: 'string' },
+            },
+            required: ['score', 'feedback'],
+          },
         },
       }),
     });
@@ -34,6 +43,9 @@ export class GeminiProvider implements AiProvider {
     if (!response.ok) {
       const err = await response.text();
       this.logger.error(`Gemini error: ${err}`);
+      if (response.status === 429 || response.status === 503) {
+        throw new ProviderResourceExhaustedError('Gemini', response.status, `Gemini API error: ${response.status}`);
+      }
       throw new Error(`Gemini API error: ${response.status}`);
     }
 
@@ -42,9 +54,13 @@ export class GeminiProvider implements AiProvider {
     };
 
     const text = data.candidates[0].content.parts[0].text;
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) throw new Error('Could not parse Gemini scoring response');
-    const parsed = JSON.parse(jsonMatch[0]) as { score: number; feedback: string };
+    let parsed: { score: number; feedback: string };
+    try {
+      parsed = JSON.parse(text) as { score: number; feedback: string };
+    } catch {
+      this.logger.error(`Gemini JSON parse failed. Raw response: ${text}`);
+      throw new Error('Could not parse Gemini scoring response');
+    }
     return { score: Math.min(100, Math.max(0, parsed.score)), feedback: parsed.feedback };
   }
 }

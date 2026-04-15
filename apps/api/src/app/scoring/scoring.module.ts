@@ -5,7 +5,6 @@ import { ConfigService } from '@nestjs/config';
 import { ScoringService } from './scoring.service';
 import { ScoringProcessor } from './scoring.processor';
 import { AiProviderFactory } from './providers/ai-provider.factory';
-import { OpenAiProvider } from './providers/openai.provider';
 import { AnthropicProvider } from './providers/anthropic.provider';
 import { GeminiProvider } from './providers/gemini.provider';
 import { SubmissionEntity, SubmissionSchema } from '../database/schemas/submission.schema';
@@ -29,7 +28,7 @@ import { SCORING_QUEUE } from './scoring.constants';
       { name: SessionEntity.name, schema: SessionSchema },
     ]),
   ],
-  providers: [ScoringService, ScoringProcessor, AiProviderFactory, OpenAiProvider, AnthropicProvider, GeminiProvider],
+  providers: [ScoringService, ScoringProcessor, AiProviderFactory, AnthropicProvider, GeminiProvider],
   exports: [ScoringService],
 })
 export class ScoringModule {}

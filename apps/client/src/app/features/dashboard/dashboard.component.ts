@@ -183,7 +183,11 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   formatDate(dateStr?: string): string {
     if (!dateStr) return '';
-    return new Date(dateStr).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+    const d = new Date(dateStr);
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const yyyy = d.getFullYear();
+    return `${dd}/${mm}/${yyyy}`;
   }
 
   difficultyClass(d: Difficulty): string {

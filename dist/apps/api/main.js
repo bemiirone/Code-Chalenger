@@ -182,6 +182,7 @@ exports.AuthController = AuthController;
 tslib_1.__decorate([
     (0, common_1.Post)('register'),
     (0, swagger_1.ApiOperation)({ summary: 'Register a new user' }),
+    (0, swagger_1.ApiBody)({ schema: { type: 'object', required: ['email', 'password', 'displayName'], properties: { email: { type: 'string', example: 'user@example.com' }, password: { type: 'string', example: 'password123' }, displayName: { type: 'string', example: 'Jane Doe' } } } }),
     tslib_1.__param(0, (0, common_1.Body)()),
     tslib_1.__metadata("design:type", Function),
     tslib_1.__metadata("design:paramtypes", [typeof (_b = typeof shared_1.RegisterDto !== "undefined" && shared_1.RegisterDto) === "function" ? _b : Object]),
@@ -191,6 +192,7 @@ tslib_1.__decorate([
     (0, common_1.Post)('login'),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),
     (0, swagger_1.ApiOperation)({ summary: 'Login and receive JWT' }),
+    (0, swagger_1.ApiBody)({ schema: { type: 'object', required: ['email', 'password'], properties: { email: { type: 'string', example: 'user@example.com' }, password: { type: 'string', example: 'password123' } } } }),
     tslib_1.__param(0, (0, common_1.Body)()),
     tslib_1.__metadata("design:type", Function),
     tslib_1.__metadata("design:paramtypes", [typeof (_d = typeof shared_1.LoginDto !== "undefined" && shared_1.LoginDto) === "function" ? _d : Object]),

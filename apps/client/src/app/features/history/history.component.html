@@ -27,8 +27,8 @@
       </div>
     </section>
 
-    @if (sessions().length === 0) {
-      <p class="text-[#9d9d9d] text-sm">No sessions yet. Start a challenge from the dashboard!</p>
+    @if (completedSessions().length === 0) {
+      <p class="text-[#9d9d9d] text-sm">No completed sessions yet. Start a challenge from the dashboard!</p>
     } @else {
 
       <!-- Two-column layout -->
@@ -36,18 +36,17 @@
 
         <!-- Left: Sessions table -->
         <div class="rounded-lg bg-[#252526] border border-[#3c3c3c] overflow-hidden">
-          <div class="grid grid-cols-[1fr_auto_auto_auto_auto_auto] gap-3 px-4 py-3
+          <div class="grid grid-cols-[1fr_auto_auto_auto_auto] gap-3 px-4 py-3
                       border-b border-[#3c3c3c] text-[#9d9d9d] text-xs uppercase tracking-wide">
             <span>Date / Language</span>
             <span>Difficulty</span>
-            <span>Status</span>
             <span>Challenges</span>
             <span>Score</span>
             <span></span>
           </div>
 
-          @for (s of sessions(); track s._id) {
-            <div class="grid grid-cols-[1fr_auto_auto_auto_auto_auto] gap-3 items-center
+          @for (s of completedSessions(); track s._id) {
+            <div class="grid grid-cols-[1fr_auto_auto_auto_auto] gap-3 items-center
                         px-4 py-3 border-b border-[#3c3c3c] last:border-b-0
                         hover:bg-[#2d2d2d] transition">
               <div>
@@ -57,18 +56,10 @@
               <span class="px-2 py-0.5 rounded text-xs font-medium" [class]="difficultyClass(primaryDifficulty(s))">
                 {{ primaryDifficulty(s) }}
               </span>
-              <span class="px-2 py-0.5 rounded text-xs font-medium"
-                [class]="s.status === 'Completed' ? 'text-green-400 bg-green-900/30' : 'text-yellow-400 bg-yellow-900/30'">
-                {{ s.status }}
-              </span>
               <span class="text-[#9d9d9d] text-xs text-center">{{ s.results.length }}/{{ s.challenges.length }}</span>
-              <span class="text-white font-semibold text-sm text-center min-w-[2rem]">
-                @if (s.status === 'Completed') { {{ s.score }} pts } @else { — }
-              </span>
+              <span class="text-white font-semibold text-sm text-center min-w-[2rem]">{{ s.score }} pts</span>
               <span class="text-right">
-                @if (s.status === 'Completed') {
-                  <a [routerLink]="['/results', s._id]" class="text-xs text-[#007acc] hover:underline whitespace-nowrap">View</a>
-                }
+                <a [routerLink]="['/results', s._id]" class="text-xs text-[#007acc] hover:underline whitespace-nowrap">View</a>
               </span>
             </div>
           }

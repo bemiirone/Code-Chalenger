@@ -1162,17 +1162,17 @@ let AiProviderFactory = class AiProviderFactory {
         this.gemini = gemini;
     }
     getProvider() {
-        const name = this.config.get('AI_PROVIDER', 'gemini');
-        if (name === 'anthropic')
-            return this.anthropic;
-        return this.gemini;
+        const name = this.config.get('AI_PROVIDER', 'anthropic');
+        if (name === 'gemini')
+            return this.gemini;
+        return this.anthropic;
     }
     getFallbackProvider() {
-        const name = this.config.get('AI_PROVIDER', 'openai');
-        if (name === 'gemini')
-            return this.anthropic;
+        const name = this.config.get('AI_PROVIDER', 'anthropic');
         if (name === 'anthropic')
             return this.gemini;
+        if (name === 'gemini')
+            return this.anthropic;
         return null;
     }
 };

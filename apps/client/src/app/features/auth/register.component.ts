@@ -26,6 +26,7 @@ export class RegisterComponent {
   password = '';
   loading = signal(false);
   error = signal('');
+  showPassword = signal(false);
 
   stats = [
     { value: '500+', label: 'Challenges' },

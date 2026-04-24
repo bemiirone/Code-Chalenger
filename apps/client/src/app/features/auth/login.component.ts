@@ -25,6 +25,7 @@ export class LoginComponent {
   password = '';
   loading = signal(false);
   error = signal('');
+  showPassword = signal(false);
 
   features = [
     { icon: '⚡', label: '5 challenges per session, randomly selected' },

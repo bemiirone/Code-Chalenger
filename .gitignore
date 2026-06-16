@@ -17,3 +17,6 @@ scripts/output/
 scheduled_tasks.lock
 scripts
 TECHNICAL_SUMMARY.md
+main.js
+main.js.map
+dist

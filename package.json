@@ -86,6 +86,7 @@
     "dompurify": "^3.3.3",
     "highlight.js": "^11.11.1",
     "ioredis": "^5.10.1",
+    "jwks-rsa": "^4.0.1",
     "marked": "^18.0.0",
     "marked-highlight": "^2.2.4",
     "monaco-editor": "^0.55.1",

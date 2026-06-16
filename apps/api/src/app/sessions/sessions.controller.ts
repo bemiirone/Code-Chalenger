@@ -1,7 +1,7 @@
 import { Controller, Get, Post, Body, Param, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags, ApiOperation } from '@nestjs/swagger';
 import { SessionsService } from './sessions.service';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { AuthGuard } from '../auth/guards/auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { StartSessionDto, SubmitAnswerDto } from '@code-challenger/shared';
 
@@ -12,7 +12,7 @@ interface AuthUser {
 
 @ApiTags('sessions')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
+@UseGuards(AuthGuard)
 @Controller('sessions')
 export class SessionsController {
   constructor(private sessionsService: SessionsService) {}

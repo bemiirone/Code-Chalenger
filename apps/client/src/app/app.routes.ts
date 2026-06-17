@@ -11,11 +11,6 @@ export const appRoutes: Route[] = [
         loadComponent: () =>
           import('./features/auth/login.component').then((m) => m.LoginComponent),
       },
-      {
-        path: 'register',
-        loadComponent: () =>
-          import('./features/auth/register.component').then((m) => m.RegisterComponent),
-      },
     ],
   },
   {
@@ -27,7 +22,6 @@ export const appRoutes: Route[] = [
   {
     path: 'challenge/:id',
     canActivate: [authGuard],
-    // Monaco Editor is loaded lazily inside this route's component
     loadComponent: () =>
       import('./features/challenge/challenge-runner.component').then(
         (m) => m.ChallengeRunnerComponent,

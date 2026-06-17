@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, signal, computed } from '@angular/core';
+import { Component, OnInit, OnDestroy, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { SessionService } from '../../core/services/session.service';
@@ -12,31 +12,36 @@ import { Challenge, Session, ScoringResult, TIMER_DURATIONS } from '@code-challe
   templateUrl: './challenge-runner.component.html',
 })
 export class ChallengeRunnerComponent implements OnInit, OnDestroy {
-  loading = signal(true);
-  submitting = signal(false);
-  result = signal<ScoringResult | null>(null);
-  submitError = signal<string | null>(null);
-  userCode = signal('');
 
-  session = signal<Session | null>(null);
+  readonly sessions = inject(SessionService);
+  readonly route = inject(ActivatedRoute);
+  readonly router = inject(Router);
+
+  readonly loading = signal(true);
+  readonly submitting = signal(false);
+  readonly result = signal<ScoringResult | null>(null);
+  readonly submitError = signal<string | null>(null);
+  readonly userCode = signal('');
+
+  readonly session = signal<Session | null>(null);
 
   timerEnabled = false;
-  timeRemaining = signal(0);
-  timerDisplay = computed(() => {
+  readonly timeRemaining = signal(0);
+  readonly timerDisplay = computed(() => {
     const s = this.timeRemaining();
     return `${Math.floor(s / 60).toString().padStart(2, '0')}:${(s % 60).toString().padStart(2, '0')}`;
   });
   private timerInterval: ReturnType<typeof setInterval> | null = null;
   private challengeStartTime = 0;
 
-  currentChallenge = computed<Challenge | null>(() => {
+  readonly currentChallenge = computed<Challenge | null>(() => {
     const s = this.session();
     const idx = this.sessions.currentChallengeIndex();
     if (!s || !s.challenges) return null;
     return (s.challenges[idx] as unknown as Challenge) ?? null;
   });
 
-  editorLanguage = computed(() => {
+  readonly editorLanguage = computed(() => {
     const lang = this.currentChallenge()?.language ?? 'typescript';
     if (lang.startsWith('angular')) return 'typescript';
     if (lang === 'nodejs' || lang === 'nestjs') return 'typescript';
@@ -44,14 +49,9 @@ export class ChallengeRunnerComponent implements OnInit, OnDestroy {
     return lang;
   });
 
-  progress = computed(() => ((this.sessions.currentChallengeIndex() + 1) / (this.session()?.challenges?.length ?? 5)) * 100);
-  isLast = computed(() => this.sessions.currentChallengeIndex() >= (this.session()?.challenges?.length ?? 5) - 1);
+  readonly progress = computed(() => ((this.sessions.currentChallengeIndex() + 1) / (this.session()?.challenges?.length ?? 5)) * 100);
+  readonly isLast = computed(() => this.sessions.currentChallengeIndex() >= (this.session()?.challenges?.length ?? 5) - 1);
 
-  constructor(
-    readonly sessions: SessionService,
-    private route: ActivatedRoute,
-    private router: Router,
-  ) {}
 
   async ngOnInit() {
     const id = this.route.snapshot.paramMap.get('id')!;

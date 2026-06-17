@@ -1,12 +1,11 @@
-import { Component, signal } from '@angular/core';
+import { Component, signal, inject, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
+import { AuthService as Auth0AngularService } from '@auth0/auth0-angular';
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule],
   styles: [`
     .spinner {
       width: 16px; height: 16px;
@@ -21,11 +20,11 @@ import { AuthService } from '../../core/services/auth.service';
   templateUrl: './login.component.html',
 })
 export class LoginComponent {
-  email = '';
-  password = '';
+  private auth = inject(AuthService);
+  private auth0 = inject(Auth0AngularService);
+
   loading = signal(false);
   error = signal('');
-  showPassword = signal(false);
 
   features = [
     { icon: '⚡', label: '5 challenges per session, randomly selected' },
@@ -34,24 +33,21 @@ export class LoginComponent {
     { icon: '🔓', label: 'View suggested solutions after each attempt' },
   ];
 
-  constructor(private auth: AuthService) {}
+  constructor() {
+    effect(() => {
+      this.auth0.isLoading$.subscribe((isLoading) => {
+        this.loading.set(isLoading);
+      });
+    });
 
-  async submit() {
-    this.loading.set(true);
-    this.error.set('');
-    try {
-      await this.auth.login({ email: this.email, password: this.password });
-    } catch (err: unknown) {
-      const status = (err as { status?: number })?.status;
-      if (status === 401) {
-        this.error.set('Invalid email or password.');
-      } else if (status === 0 || status == null) {
-        this.error.set('Cannot reach the server. Make sure the API is running on port 3000.');
-      } else {
-        this.error.set(`Login failed (${status}). Please try again.`);
+    this.auth0.error$.subscribe((err) => {
+      if (err) {
+        this.error.set(err.message || 'An authentication error occurred.');
       }
-    } finally {
-      this.loading.set(false);
-    }
+    });
+  }
+
+  login() {
+    this.auth.login();
   }
 }

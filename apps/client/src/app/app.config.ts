@@ -14,6 +14,8 @@ export const appConfig: ApplicationConfig = {
     provideAuth0({
       domain: environment.auth0.domain,
       clientId: environment.auth0.clientId,
+      cacheLocation: 'localstorage',
+      useRefreshTokens: true,
       authorizationParams: {
         redirect_uri: window.location.origin,
         audience: environment.auth0.audience,

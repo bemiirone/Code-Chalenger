@@ -1,26 +1,22 @@
 import { Controller, Get, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags, ApiOperation } from '@nestjs/swagger';
-import { AuthService } from './auth.service';
 import { AuthGuard } from './guards/auth.guard';
 import { CurrentUser } from './decorators/current-user.decorator';
 
 interface Auth0User {
-  auth0Sub: string;
+  userId: string;
   email: string;
-  name?: string;
-  picture?: string;
+  auth0Sub: string;
 }
 
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
-  constructor(private authService: AuthService) {}
-
   @Get('me')
   @UseGuards(AuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get current user profile, auto-provisioning if first login' })
-  async me(@CurrentUser() user: Auth0User) {
-    return this.authService.findOrCreateByAuth0Sub(user);
+  @ApiOperation({ summary: 'Get current user profile' })
+  me(@CurrentUser() user: Auth0User) {
+    return { _id: user.userId, email: user.email };
   }
 }

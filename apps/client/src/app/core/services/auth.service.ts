@@ -2,6 +2,7 @@ import { Injectable, inject, signal, effect } from '@angular/core';
 import { Router } from '@angular/router';
 import { AuthService as Auth0AngularService } from '@auth0/auth0-angular';
 import { User } from '@code-challenger/shared';
+import { environment } from '../../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -38,6 +39,7 @@ export class AuthService {
   login(): void {
     this.auth0.loginWithRedirect({
       appState: { target: '/dashboard' },
+      authorizationParams: { audience: environment.auth0.audience },
     });
   }
 

@@ -4,13 +4,13 @@ import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { provideAuth0 } from '@auth0/auth0-angular';
 import { environment } from '../environments/environment';
 import { appRoutes } from './app.routes';
-import { authInterceptor } from './core/services/auth.interceptor';
+import { authInterceptor, errorInterceptor } from './core/services/auth.interceptor';
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
     provideRouter(appRoutes),
-    provideHttpClient(withInterceptors([authInterceptor])),
+    provideHttpClient(withInterceptors([authInterceptor, errorInterceptor])),
     provideAuth0({
       domain: environment.auth0.domain,
       clientId: environment.auth0.clientId,

@@ -1,13 +1,15 @@
-import { Injectable, inject, signal, effect } from '@angular/core';
+import { Injectable, inject, signal, effect, DestroyRef } from '@angular/core';
 import { Router } from '@angular/router';
 import { AuthService as Auth0AngularService } from '@auth0/auth0-angular';
 import { User } from '@code-challenger/shared';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { environment } from '../../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private auth0 = inject(Auth0AngularService);
   private router = inject(Router);
+  private destroyRef = inject(DestroyRef);
 
   private _user = signal<User | null>(null);
   private _isAuthenticated = signal(false);
@@ -18,7 +20,7 @@ export class AuthService {
   constructor() {
     effect(() => {
       if (this._isAuthenticated()) {
-        this.auth0.user$.subscribe((user) => {
+        this.auth0.user$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((user) => {
           if (user) {
             this._user.set({
               _id: user.sub || '',
@@ -31,7 +33,7 @@ export class AuthService {
       }
     });
 
-    this.auth0.isAuthenticated$.subscribe((isAuthenticated) => {
+    this.auth0.isAuthenticated$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((isAuthenticated) => {
       this._isAuthenticated.set(isAuthenticated);
     });
   }

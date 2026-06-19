@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { Component, EventEmitter, Input, Output, signal } from '@angular/core';
+import { Component, input, output, signal } from '@angular/core';
 import { ActivatedRoute, convertToParamMap, provideRouter, Router } from '@angular/router';
 import { vi } from 'vitest';
 import { ChallengeRunnerComponent } from './challenge-runner.component';
@@ -9,10 +9,10 @@ import { SessionService } from '../../core/services/session.service';
 // Stub Monaco to avoid CDN loading in tests — must match the bound inputs/outputs
 @Component({ selector: 'app-monaco-editor', standalone: true, template: '' })
 class MonacoEditorStub {
-  @Input() value = '';
-  @Input() language = '';
-  @Input() height = '';
-  @Output() valueChange = new EventEmitter<string>();
+  readonly value = input('');
+  readonly language = input('');
+  readonly height = input('');
+  readonly valueChange = output<string>();
 }
 
 const challenge1 = {

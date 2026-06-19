@@ -2,14 +2,13 @@ import {
   Component,
   ElementRef,
   ViewChild,
-  Input,
-  Output,
-  EventEmitter,
+  input,
+  output,
   OnInit,
   OnDestroy,
-  signal,
   OnChanges,
   SimpleChanges,
+  signal,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
@@ -53,10 +52,10 @@ function loadMonaco(): Promise<void> {
 export class MonacoEditorComponent implements OnInit, OnDestroy, OnChanges {
   @ViewChild('editorContainer', { static: true }) containerRef!: ElementRef<HTMLDivElement>;
 
-  @Input() value = '';
-  @Input() language = 'typescript';
-  @Input() height = '400px';
-  @Output() valueChange = new EventEmitter<string>();
+  readonly value = input('');
+  readonly language = input('typescript');
+  readonly height = input('400px');
+  readonly valueChange = output<string>();
 
   loading = signal(true);
 
@@ -69,8 +68,8 @@ export class MonacoEditorComponent implements OnInit, OnDestroy, OnChanges {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const monaco = (window as any).monaco;
     this.editor = monaco.editor.create(this.containerRef.nativeElement, {
-      value: this.value,
-      language: this.language,
+      value: this.value(),
+      language: this.language(),
       theme: 'vs-dark',
       minimap: { enabled: false },
       fontSize: 14,

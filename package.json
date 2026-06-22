@@ -99,6 +99,7 @@
     "reflect-metadata": "^0.1.13",
     "rxjs": "~7.8.0",
     "swagger-ui-express": "^5.0.1",
-    "tailwindcss": "^4.2.2"
+    "tailwindcss": "^4.2.2",
+    "@vercel/node": "^3.0.0"
   }
 }

@@ -7,6 +7,7 @@
     "start:api": "nx serve api",
     "build:client": "nx build client",
     "build:api": "nx build api",
+    "build:vercel": "npx nx build client --prod && npx nx build api --prod",
     "test": "nx run-many --target=test",
     "lint": "nx run-many --target=lint",
     "seed": "ts-node --esm scripts/seed-challenges.ts"

@@ -6,7 +6,6 @@
     "NX_DAEMON": "false",
     "NODE_OPTIONS": "--max-old-space-size=4096"
   },
-  "public": "dist/apps/client/browser",
   "functions": {
     "api.js": {
       "memory": 3008,

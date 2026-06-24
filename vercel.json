@@ -4,11 +4,11 @@
   "installCommand": "npm install",
   "env": {
     "NX_DAEMON": "false",
-    "NODE_OPTIONS": "--max-old-space-size=4096"
+    "NODE_OPTIONS": "--max-old-space-size=2048"
   },
   "functions": {
     "api.js": {
-      "memory": 3008,
+      "memory": 2048,
       "maxDuration": 30,
       "runtime": "nodejs20.x"
     }

@@ -15,14 +15,14 @@ module.exports = async (req, res) => {
       const { DocumentBuilder, SwaggerModule } = require('@nestjs/swagger');
 
       // Import the built AppModule
-      const { AppModule } = require('./dist/apps/api/app/app.module');
+      const { AppModule } = require('../dist/apps/api/app/app.module');
 
       nestApp = await NestFactory.create(AppModule, null, {
         logger: ['error', 'warn'],
       });
 
       // Configuration
-      nestApp.setGlobalPrefix('api');
+      nestApp.setGlobalPrefix('');
       nestApp.useGlobalPipes(
         new ValidationPipe({ whitelist: true, transform: true }),
       );

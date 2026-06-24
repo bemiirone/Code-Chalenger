@@ -9,8 +9,7 @@
   "functions": {
     "api.js": {
       "memory": 2048,
-      "maxDuration": 30,
-      "runtime": "nodejs@20"
+      "maxDuration": 30
     }
   },
   "routes": [

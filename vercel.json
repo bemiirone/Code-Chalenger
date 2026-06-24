@@ -1,27 +1,20 @@
 {
   "version": 2,
-  "buildCommand": "npx nx build client --prod && npx nx build api --prod",
+  "buildCommand": "npm run build:client && npm run build:api",
   "installCommand": "npm install",
+  "outputDirectory": "dist/apps/client/browser",
   "env": {
     "NX_DAEMON": "false",
     "NODE_OPTIONS": "--max-old-space-size=2048"
   },
-  "routes": [
+  "rewrites": [
     {
-      "src": "/api/(.*)",
-      "dest": "/api.js",
-      "methods": [
-        "GET",
-        "POST",
-        "PUT",
-        "DELETE",
-        "PATCH",
-        "OPTIONS"
-      ]
+      "source": "/api/(.*)",
+      "destination": "/api.js"
     },
     {
-      "src": "/(.*)",
-      "dest": "/index.html"
+      "source": "/(.*)",
+      "destination": "index.html"
     }
   ]
 }

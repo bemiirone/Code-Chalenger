@@ -6,12 +6,6 @@
     "NX_DAEMON": "false",
     "NODE_OPTIONS": "--max-old-space-size=2048"
   },
-  "functions": {
-    "api.js": {
-      "memory": 2048,
-      "maxDuration": 30
-    }
-  },
   "routes": [
     {
       "src": "/api/(.*)",

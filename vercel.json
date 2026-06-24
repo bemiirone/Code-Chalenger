@@ -10,7 +10,7 @@
     "api.js": {
       "memory": 2048,
       "maxDuration": 30,
-      "runtime": "nodejs20.x"
+      "runtime": "nodejs@20"
     }
   },
   "routes": [

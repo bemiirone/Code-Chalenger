@@ -3,49 +3,22 @@
  * This file is automatically called by Vercel for all /api/* requests
  */
 
-// Cache the NestJS app instance across cold starts
 let nestApp;
 
 module.exports = async (req, res) => {
   try {
     // Initialize NestJS app only once (cold start optimization)
     if (!nestApp) {
-      const { NestFactory } = require('@nestjs/core');
-      const { ValidationPipe, Logger } = require('@nestjs/common');
-      const { DocumentBuilder, SwaggerModule } = require('@nestjs/swagger');
+      console.log('🔧 Initializing NestJS app...');
 
-      // Import the built AppModule
-      const { AppModule } = require('../dist/apps/api/app/app.module');
+      // Import the built main.js which exports createServerlessApp
+      const { createServerlessApp } = require('../dist/apps/api/main.js');
 
-      nestApp = await NestFactory.create(AppModule, null, {
-        logger: ['error', 'warn'],
-      });
+      if (!createServerlessApp) {
+        throw new Error('createServerlessApp not exported from main.js');
+      }
 
-      // Configuration
-      nestApp.setGlobalPrefix('');
-      nestApp.useGlobalPipes(
-        new ValidationPipe({ whitelist: true, transform: true }),
-      );
-
-      // CORS - Allow requests from your frontend
-      const clientUrl =
-        process.env.CLIENT_URL || `https://${process.env.VERCEL_URL}`;
-      nestApp.enableCors({
-        origin: clientUrl ? [clientUrl, `https://${clientUrl}`] : '*',
-        credentials: true,
-      });
-
-      // Swagger Documentation
-      const config = new DocumentBuilder()
-        .setTitle('Code Challenger API')
-        .setDescription('AI-powered code challenge platform')
-        .setVersion('1.0')
-        .addBearerAuth()
-        .build();
-      const document = SwaggerModule.createDocument(nestApp, config);
-      SwaggerModule.setup('api/docs', nestApp, document);
-
-      await nestApp.init();
+      nestApp = await createServerlessApp();
       console.log('✅ NestJS app initialized for request handling');
     }
 

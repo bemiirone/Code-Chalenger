@@ -11,8 +11,8 @@ module.exports = async (req, res) => {
     if (!nestApp) {
       console.log('🔧 Initializing NestJS app...');
 
-      // Import the built main.js which exports createServerlessApp
-      const { createServerlessApp } = require('../dist/apps/api/main.js');
+      // Use dynamic import to handle ESM dependencies in the bundled code
+      const { createServerlessApp } = await import('../dist/apps/api/main.js');
 
       if (!createServerlessApp) {
         throw new Error('createServerlessApp not exported from main.js');

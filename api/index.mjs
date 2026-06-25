@@ -1,17 +1,17 @@
 /**
- * Vercel Serverless Handler for NestJS
+ * Vercel Serverless Handler for NestJS (ESM)
  * This file is automatically called by Vercel for all /api/* requests
  */
 
 let nestApp;
 
-module.exports = async (req, res) => {
+export default async (req, res) => {
   try {
     // Initialize NestJS app only once (cold start optimization)
     if (!nestApp) {
       console.log('🔧 Initializing NestJS app...');
 
-      // Use dynamic import to handle ESM dependencies in the bundled code
+      // Import the built main.js which exports createServerlessApp
       const { createServerlessApp } = await import('../dist/apps/api/main.js');
 
       if (!createServerlessApp) {

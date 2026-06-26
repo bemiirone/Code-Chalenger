@@ -7,7 +7,7 @@
     "build": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "tsc --project tsconfig.app.json --outDir ../../dist/apps/api && (cd ../../dist/apps/api && cp -r apps/api/src/* . 2>/dev/null; rm -rf apps libs)",
+        "command": "tsc --project tsconfig.app.json --outDir ../../dist/apps/api && echo '{\"type\":\"module\"}' > ../../dist/apps/api/package.json && (cd ../../dist/apps/api && cp -r apps/api/src/* . 2>/dev/null; rm -rf apps libs)",
         "cwd": "apps/api"
       },
       "configurations": {

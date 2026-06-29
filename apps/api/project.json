@@ -5,13 +5,25 @@
   "projectType": "application",
   "targets": {
     "build": {
-      "executor": "nx:run-commands",
+      "executor": "@nx/webpack:webpack",
+      "outputs": ["{options.outputPath}"],
       "options": {
-        "command": "tsc --project tsconfig.app.json --outDir ../../dist/apps/api && echo '{\"type\":\"module\"}' > ../../dist/apps/api/package.json && (cd ../../dist/apps/api && cp -r apps/api/src/* . 2>/dev/null; rm -rf apps libs)",
-        "cwd": "apps/api"
+        "target": "node",
+        "compiler": "tsc",
+        "outputPath": "dist/apps/api",
+        "main": "apps/api/src/main.ts",
+        "tsConfig": "apps/api/tsconfig.app.json",
+        "webpackConfig": "apps/api/webpack.config.js",
+        "generatePackageJson": true,
+        "sourceMap": false
       },
       "configurations": {
-        "development": {}
+        "development": {
+          "mode": "development"
+        },
+        "production": {
+          "mode": "production"
+        }
       }
     },
     "prune-lockfile": {

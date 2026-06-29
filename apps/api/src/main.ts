@@ -61,4 +61,7 @@ async function bootstrap() {
   Logger.log(`Swagger docs at http://localhost:${port}/api/docs`);
 }
 
-bootstrap();
+// Only start the HTTP server in local dev — Vercel uses createServerlessApp() instead
+if (!process.env['VERCEL']) {
+  bootstrap();
+}

@@ -3,25 +3,19 @@ const { join } = require('path');
 
 module.exports = {
   mode: 'production',
-  experiments: {
-    outputModule: true, // Enable ES module output
-  },
   output: {
     path: join(__dirname, '../../dist/apps/api'),
     filename: 'main.js',
     library: {
-      type: 'module', // Output as ESM module
+      type: 'commonjs2', // CJS output — no .js extension issues in Node runtime
     },
-    clean: process.env.NODE_ENV === 'production',
-    ...(process.env.NODE_ENV !== 'production' && {
-      devtoolModuleFilenameTemplate: '[absolute-resource-path]',
-    }),
+    clean: true,
   },
   externals: [
-    // Exclude all node_modules from bundling to avoid ESM/CommonJS conflicts
+    // Keep all node_modules external — resolved at runtime on Vercel
     (context, request, callback) => {
       if (/^[a-z@]/.test(request)) {
-        return callback(null, `module ${request}`);
+        return callback(null, `commonjs ${request}`);
       }
       callback();
     },
@@ -36,7 +30,7 @@ module.exports = {
       optimization: false,
       outputHashing: 'none',
       generatePackageJson: true,
-      sourceMap: true,
+      sourceMap: false,
     }),
   ],
 };

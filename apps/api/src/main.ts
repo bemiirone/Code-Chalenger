@@ -18,7 +18,7 @@ export async function createServerlessApp() {
     logger: ['error', 'warn'],
   });
 
-  app.setGlobalPrefix('');
+  app.setGlobalPrefix('api');
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
 
   const clientUrl =

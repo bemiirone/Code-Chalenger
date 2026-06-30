@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { ScoringResult } from '@code-challenger/shared';
@@ -22,7 +22,7 @@ export class ScoringService {
   private readonly logger = new Logger(ScoringService.name);
 
   constructor(
-    @InjectQueue(SCORING_QUEUE) private scoringQueue: Queue,
+    @Optional() @InjectQueue(SCORING_QUEUE) private scoringQueue: Queue | null,
     private aiFactory: AiProviderFactory,
   ) {}
 
@@ -63,8 +63,14 @@ export class ScoringService {
     }
   }
 
-  /** Enqueue for async processing (kept for future background use). */
+  /** Enqueue for async processing (kept for future background use).
+   *  Falls back to inline scoring when Redis is not available. */
   async enqueueScoring(data: ScoringJobData): Promise<ScoringResult> {
+    if (!this.scoringQueue) {
+      this.logger.warn('No Redis queue available — scoring inline');
+      return this.scoreNow(data);
+    }
+
     const job = await this.scoringQueue.add('score', data, {
       attempts: 3,
       backoff: { type: 'exponential', delay: 2000 },

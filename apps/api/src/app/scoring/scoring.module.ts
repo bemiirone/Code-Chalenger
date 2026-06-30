@@ -11,24 +11,38 @@ import { SubmissionEntity, SubmissionSchema } from '../database/schemas/submissi
 import { SessionEntity, SessionSchema } from '../database/schemas/session.schema';
 import { SCORING_QUEUE } from './scoring.constants';
 
+// Only connect to Redis when explicitly configured — skipped on Vercel
+const redisAvailable = !!(process.env['REDIS_HOST'] || process.env['REDIS_URL']);
+
+const bullImports = redisAvailable
+  ? [
+      BullModule.forRootAsync({
+        useFactory: (config: ConfigService) => ({
+          connection: {
+            host: config.get('REDIS_HOST', 'localhost'),
+            port: config.get<number>('REDIS_PORT', 6379),
+          },
+        }),
+        inject: [ConfigService],
+      }),
+      BullModule.registerQueue({ name: SCORING_QUEUE }),
+    ]
+  : [];
+
+// ScoringProcessor registers a BullMQ worker — only include it when Redis is available
+const scoringProviders = redisAvailable
+  ? [ScoringService, ScoringProcessor, AiProviderFactory, AnthropicProvider, GeminiProvider]
+  : [ScoringService, AiProviderFactory, AnthropicProvider, GeminiProvider];
+
 @Module({
   imports: [
-    BullModule.forRootAsync({
-      useFactory: (config: ConfigService) => ({
-        connection: {
-          host: config.get('REDIS_HOST', 'localhost'),
-          port: config.get<number>('REDIS_PORT', 6379),
-        },
-      }),
-      inject: [ConfigService],
-    }),
-    BullModule.registerQueue({ name: SCORING_QUEUE }),
+    ...bullImports,
     MongooseModule.forFeature([
       { name: SubmissionEntity.name, schema: SubmissionSchema },
       { name: SessionEntity.name, schema: SessionSchema },
     ]),
   ],
-  providers: [ScoringService, ScoringProcessor, AiProviderFactory, AnthropicProvider, GeminiProvider],
+  providers: scoringProviders,
   exports: [ScoringService],
 })
 export class ScoringModule {}

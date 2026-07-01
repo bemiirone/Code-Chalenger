@@ -1,6 +1,6 @@
 # Code Challenger
 
-An AI-driven code challenge platform. Users select a language and difficulty, receive up to 5 random challenges, write code in a Monaco Editor, and receive LLM-scored feedback with structured Markdown.
+An AI-driven code challenge platform. Users select a language and difficulty, receive up to 5 random challenges, write code in a Monaco Editor, and receive LLM-scored feedback with structured Markdown. Though this app is responsive. It is best attempted on a desktop computer.
 
 ---
 
@@ -212,6 +212,10 @@ npx nx serve api      # → http://localhost:3000/api
 # Seed challenges (requires MONGODB_URI + AI provider key in .env)
 npx ts-node scripts/seed-challenges.ts
 ```
+
+## View the app online
+
+<https://code-challenger.nsmultimedia.co.uk>
 
 ---
 

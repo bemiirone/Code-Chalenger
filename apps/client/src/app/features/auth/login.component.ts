@@ -27,9 +27,9 @@ export class LoginComponent {
   error = signal('');
 
   features = [
-    { icon: '⚡', label: '5 challenges per session, randomly selected' },
+    { icon: '⚡', label: 'Up to 5 challenges per session, randomly selected' },
     { icon: '🤖', label: 'Instant AI scoring with actionable feedback' },
-    { icon: '📈', label: 'Track progress across Angular v12–v19' },
+    { icon: '📈', label: 'Track progress across sessions' },
     { icon: '🔓', label: 'View suggested solutions after each attempt' },
   ];
 
